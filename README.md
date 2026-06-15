@@ -27,7 +27,8 @@
    - `Local Virtual Machine (VirtualBox/Vagrant) sebagai alternatif simulasi cloud`
 
      - Apabila membuat lebih dari 1 VM, maka VM harus dibuat **minimal** dari 2 komputer/host yang berbeda
-     - Hanya boleh membuat VM dengan spesifikasi sebagai berikut:| No | Tipe | CPU   | Memory | Harga/bulan |
+     - Hanya boleh membuat VM dengan spesifikasi sebagai berikut:
+       | No | Tipe | CPU   | Memory | Harga/bulan |
        | -- | ---- | ----- | ------ | ----------- |
        | 1  | vm1  | 1vCPU | 512 MB | 4 US$       |
        | 2  | vm2  | 1vCPU | 1 GB   | 6 US$       |
@@ -166,15 +167,14 @@ Jalankan Locust menggunakan file `Resources/Test/locustfile.py` dengan ketentuan
 
 - Locust **harus dijalankan dari komputer/host yang berbeda** dari server aplikasi.
 - Hapus isi database yang **di insert di setiap skenario** pengujian agar tidak terjadi akumulasi data. (tidak diperkenankan hapus isi database awal)
-- Lakukan pengujian dengan **5 skenario** berikut:
-  | No | Skenario                           | Parameter                                                     | Durasi   |
+- Lakukan pengujian dengan **5 skenario** berikut:| No | Skenario                           | Parameter                                                     | Durasi   |
   | -- | ---------------------------------- | ------------------------------------------------------------- | -------- |
   | 1  | Maksimum RPS (0% failure)          | Naikkan user secara bertahap                                  | 60 detik |
   | 2  | Peak Concurrency – Spawn Rate 50  | Tingkatkan user hingga failure muncul, catat nilai sebelumnya | 60 detik |
   | 3  | Peak Concurrency – Spawn Rate 100 | Sama seperti di atas                                          | 60 detik |
   | 4  | Peak Concurrency – Spawn Rate 200 | Sama seperti di atas                                          | 60 detik |
   | 5  | Peak Concurrency – Spawn Rate 500 | Sama seperti di atas                                          | 60 detik |
-- Untuk **Skenario 1**: Catat **rata-rata RPS** tertinggi dengan tingkat kegagalan 0%. 
+- Untuk **Skenario 1**: Catat **rata-rata RPS** tertinggi dengan tingkat kegagalan 0%.
 - Untuk **Skenario 2–5**: Catat jumlah **concurrent user** tertinggi yang masih dapat dilayani dengan failure 0%.
 - Sertakan screenshot hasil Locust (grafik RPS, response time, failure rate) dan screenshot resource utilization (CPU, memory) server selama pengujian.
 
@@ -208,7 +208,7 @@ Buat laporan dalam format **Markdown** yang dipublish di repository GitHub kelom
 
 ### Pengumpulan
 
-1. Kumpulkan link repository GitHub kelompok melalui form yang disediakan di: **[link form pengumpulan]**
+1. Kumpulkan link repository GitHub kelompok melalui spreadsheet jadwal demo & pengumpulan final di: [Spreadsheet Jadwal Demo &amp; Pengumpulan FP](https://docs.google.com/spreadsheets/d/1_Bw4N_qTTn6DVUIoRETbTm5fuZdBaEYqyptDmtFxkgI/edit?usp=sharing)
 2. Repository harus bersifat **public** dan berisi:
    - Source code backend (`app.py`) dan frontend
    - Locustfile yang digunakan
@@ -229,7 +229,6 @@ Buat laporan dalam format **Markdown** yang dipublish di repository GitHub kelom
 > Contoh: **aggregat RPS** = 120 → Nilai = (120/200) × 30 = **18 poin**
 
 ---
-
 
 ## Catatan Khusus
 
