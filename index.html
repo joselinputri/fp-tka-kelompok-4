@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order Processing Service</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🛒 Order Processing Service</h1>
+      <p class="subtitle">Final Project Teknologi Komputasi Awan</p>
+    </header>
+
+    <!-- Form Buat Pesanan -->
+    <section class="card">
+      <h2>Buat Pesanan Baru</h2>
+      <div class="form-group">
+        <label for="product">Nama Produk</label>
+        <input type="text" id="product" placeholder="Contoh: Laptop Gaming ASUS ROG" />
+      </div>
+      <div class="form-group">
+        <label for="quantity">Jumlah</label>
+        <input type="number" id="quantity" min="1" value="1" />
+      </div>
+      <div class="form-group">
+        <label for="price">Harga Satuan (Rp)</label>
+        <input type="number" id="price" min="0" placeholder="Contoh: 150000" />
+      </div>
+      <button onclick="createOrder()">Buat Pesanan</button>
+      <div id="create-result" class="result-box hidden"></div>
+    </section>
+
+    <!-- Cek Status Pesanan -->
+    <section class="card">
+      <h2>Cek Status Pesanan</h2>
+      <div class="form-group">
+        <label for="order-id">Order ID</label>
+        <input type="text" id="order-id" placeholder="Masukkan order_id" />
+      </div>
+      <button onclick="getOrderStatus()">Cek Status</button>
+      <div id="status-result" class="result-box hidden"></div>
+    </section>
+
+    <!-- Update Status -->
+    <section class="card">
+      <h2>Update Status Pesanan</h2>
+      <div class="form-group">
+        <label for="update-order-id">Order ID</label>
+        <input type="text" id="update-order-id" placeholder="Masukkan order_id" />
+      </div>
+      <div class="form-group">
+        <label for="new-status">Status Baru</label>
+        <select id="new-status">
+          <option value="pending">Pending</option>
+          <option value="processing">Processing</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+      <button onclick="updateOrderStatus()">Update Status</button>
+      <div id="update-result" class="result-box hidden"></div>
+    </section>
+
+    <!-- Riwayat Pesanan -->
+    <section class="card">
+      <h2>Riwayat Pesanan</h2>
+      <button onclick="getOrderHistory()">Tampilkan Riwayat</button>
+      <div id="history-result" class="result-box hidden"></div>
+    </section>
+  </div>
+
+  <script>
+    // Ganti dengan IP/URL backend yang sudah di-deploy
+    const API_BASE = "http://localhost:5001";
+
+    function showResult(elementId, data, isError = false) {
+      const el = document.getElementById(elementId);
+      el.classList.remove("hidden", "error", "success");
+      el.classList.add(isError ? "error" : "success");
+      el.textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function createOrder() {
+      const product = document.getElementById("product").value.trim();
+      const quantity = parseInt(document.getElementById("quantity").value);
+      const price = parseFloat(document.getElementById("price").value);
+
+      if (!product || !quantity || !price) {
+        showResult("create-result", { error: "Semua field wajib diisi" }, true);
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/order`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ product, quantity, price })
+        });
+        const data = await res.json();
+        showResult("create-result", data, !res.ok);
+      } catch (err) {
+        showResult("create-result", { error: err.message }, true);
+      }
+    }
+
+    async function getOrderStatus() {
+      const orderId = document.getElementById("order-id").value.trim();
+      if (!orderId) {
+        showResult("status-result", { error: "Order ID wajib diisi" }, true);
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/order/${orderId}`);
+        const data = await res.json();
+        showResult("status-result", data, !res.ok);
+      } catch (err) {
+        showResult("status-result", { error: err.message }, true);
+      }
+    }
+
+    async function updateOrderStatus() {
+      const orderId = document.getElementById("update-order-id").value.trim();
+      const status = document.getElementById("new-status").value;
+      if (!orderId) {
+        showResult("update-result", { error: "Order ID wajib diisi" }, true);
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/order/${orderId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status })
+        });
+        const data = await res.json();
+        showResult("update-result", data, !res.ok);
+      } catch (err) {
+        showResult("update-result", { error: err.message }, true);
+      }
+    }
+
+    async function getOrderHistory() {
+      try {
+        const res = await fetch(`${API_BASE}/orders`);
+        const data = await res.json();
+        showResult("history-result", data, !res.ok);
+      } catch (err) {
+        showResult("history-result", { error: err.message }, true);
+      }
+    }
+  </script>
+</body>
+</html>
