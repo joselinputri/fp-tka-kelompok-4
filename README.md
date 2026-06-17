@@ -381,6 +381,6 @@ Dengan merujuk ke path kosong (`""`), semua API call dari browser diarahkan seca
 - **Status Nginx Active:**
   ![Nginx Status](./result/nginx_status.png)
 - **Tampilan Frontend & Hasil Hit API:**
-  ![Frontend Active](./result/frontend_active.png)
+  ![Frontend Active](./result/frontend_dashboard.png)
 
   
