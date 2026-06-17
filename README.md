@@ -237,13 +237,14 @@ Layanan backend dideploy menggunakan Gunicorn dengan 4 worker pada 3 instance te
 - Dependency: Flask, PyMongo, Bcrypt, PyJWT, Gunicorn
 - Port: 5000 (Internal)
 <br>
+
 ### Daftar Instance Backend
+
 | Instance | IP Address |
 | :--- | :--- |
 | App Server 1 (Redis) | `34.101.207.217:5000` |
 | App Server 2 | `34.128.83.168:5000` |
 | App Server 3 | `34.50.119.137:5000` |
-
   Lalu jalankan perintah 
 ```
   # Setup Environment
