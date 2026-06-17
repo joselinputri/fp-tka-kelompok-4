@@ -723,7 +723,11 @@ ansible-playbook -i inventory.ini setup_appserver.yml
 ansible-playbook -i inventory.ini setup_nginx.yml
 ```
 
+![ansible run](./result/ansible-mongo.jpeg)
+
 ![ansible run](./result/ansible.jpeg)
+
+![ansible run](./result/ansible-nginx.jpeg)
 
 ---
 
