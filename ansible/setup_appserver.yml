@@ -1,0 +1,96 @@
+---
+- name: Setup Flask App Server
+  hosts: appservers
+  become: yes
+
+  tasks:
+
+    - name: Update packages
+      apt:
+        update_cache: yes
+
+
+    - name: Install python dependencies
+      apt:
+        name:
+          - python3
+          - python3-pip
+          - git
+        state: present
+
+
+    - name: Create app directory
+      file:
+        path: /opt/order-service
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0755'
+
+
+    - name: Copy Flask app
+      copy:
+        src: app.py
+        dest: /opt/order-service/app.py
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0644'
+
+
+    - name: Copy requirements
+      copy:
+        src: requirements.txt
+        dest: /opt/order-service/requirements.txt
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0644'
+
+
+    - name: Install python libraries
+      pip:
+        requirements: /opt/order-service/requirements.txt
+        executable: pip3
+
+
+    - name: Install gunicorn
+      pip:
+        name:
+          - gunicorn
+        executable: pip3
+
+
+    - name: Create systemd service
+      copy:
+        dest: /etc/systemd/system/order.service
+        content: |
+          [Unit]
+          Description=Order Processing Flask Service
+          After=network.target
+
+          [Service]
+          User={{ ansible_user }}
+          WorkingDirectory=/opt/order-service
+
+          ExecStart=/usr/local/bin/gunicorn \
+          -w 4 \
+          --timeout 60 \
+          -b 0.0.0.0:5000 \
+          app:app
+
+          Restart=always
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+
+    - name: Enable and start order service
+      systemd:
+        name: order
+        enabled: yes
+        state: restarted

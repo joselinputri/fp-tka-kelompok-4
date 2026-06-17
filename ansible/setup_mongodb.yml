@@ -1,0 +1,35 @@
+---
+- name: Setup MongoDB Server
+  hosts: mongodb
+  become: yes
+
+
+  tasks:
+
+
+    - name: Update apt
+      apt:
+        update_cache: yes
+
+
+    - name: Install MongoDB
+      apt:
+        name: mongodb
+        state: present
+
+
+    - name: Start MongoDB
+      systemd:
+        name: mongodb
+        state: started
+        enabled: yes
+
+
+    - name: Create index info file
+      copy:
+        dest: /tmp/indexes.txt
+        content: |
+          orders:
+          order_id unique
+          created_at index
+          status index
