@@ -229,3 +229,27 @@ mongosh orderdb --eval "db.stats()"
 mongodb://10.184.0.6:27017/orderdb
 ```
 
+## 8. Deployment Backend (App Server)
+Layanan backend dideploy menggunakan Gunicorn dengan 4 worker pada 3 instance terpisah untuk mendukung load balancing.<br>
+**Konfigurasi Instance:**
+- Web Server: Gunicorn (WSGI HTTP Server)
+- Virtual Environment: Python 3.10 venv
+- Dependency: Flask, PyMongo, Bcrypt, PyJWT, Gunicorn
+- Port: 5000 (Internal)
+<br>
+**Daftar Instance Backend:**
+  | **Instance** | **IP Adrress** |
+  | App Server 1 (Redis) | 34.101.207.217:5000 |
+  | App Server 2 | 34.128.83.168:5000 |
+  | App Server 3 | 34.50.119.137:5000 |
+
+  Lalu jalankan perintah 
+```
+  # Setup Environment
+source venv/bin/activate
+export MONGO_URI="mongodb://10.184.0.6:27017/orderdb"
+
+# Menjalankan Gunicorn sebagai daemon
+gunicorn -w 4 -b 0.0.0.0:5000 app:app --daemon
+```
+  
