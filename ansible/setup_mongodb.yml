@@ -3,27 +3,36 @@
   hosts: mongodb
   become: yes
 
-
   tasks:
-
 
     - name: Update apt
       apt:
         update_cache: yes
 
+    - name: Add MongoDB GPG key
+      apt_key:
+        url: https://www.mongodb.org/static/pgp/server-6.0.asc
+        state: present
+
+    - name: Add MongoDB repository
+      apt_repository:
+        repo: "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse"
+        state: present
+
+    - name: Update apt after adding repo
+      apt:
+        update_cache: yes
 
     - name: Install MongoDB
       apt:
-        name: mongodb
+        name: mongodb-org
         state: present
-
 
     - name: Start MongoDB
       systemd:
-        name: mongodb
+        name: mongod
         state: started
         enabled: yes
-
 
     - name: Create index info file
       copy:
