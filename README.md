@@ -745,3 +745,77 @@ curl http://34.101.72.188/health
 ### Test Koneksi Langsung ke Backend (Gunicorn Port 5000)
 
 ![ansible gunicorn](./result/ansible-5000.jpeg)
+
+---
+
+## 11. Load Testing dengan Locust
+
+Load testing dilakukan menggunakan `locustfile.py`, menembak ke Load Balancer Nginx (`http://34.101.72.188`). Tool dijalankan dari luar infrastruktur agar hasil benar-benar mengukur performa server, bukan ikut terbebani oleh proses Locust itu sendiri.
+
+```bash
+locust -f locustfile.py --host=http://34.101.72.188
+```
+
+`locustfile.py` mensimulasikan dua tipe pengguna secara bersamaan:
+- **CustomerUser** (80% traffic) — browsing produk, membuat order, melihat riwayat order
+- **AdminUser** (20% traffic) — dashboard stats, mengelola order, melihat data user & log
+
+### 11.1 Metodologi
+
+Setiap skenario dijalankan dengan pola sebagai berikut:
+1. Set jumlah user dan spawn rate sesuai skenario
+2. Biarkan berjalan minimal **2–3 menit** sebelum membaca hasil — failure rate yang muncul sesaat di awal (warm-up) dan kemudian reda ke 0% **tidak dihitung sebagai kegagalan kapasitas**, namun failure yang terus bertambah atau menetap di atas ~0,1% dianggap melebihi kapasitas
+3. Titik hasil akhir adalah nilai tertinggi (Skenario 1) atau jumlah user tertinggi (Skenario 2–5) yang masih menunjukkan failure rate 0% (atau mendekati 0%, dengan catatan) secara stabil
+
+### 11.2 Hasil Pengujian
+
+| Skenario | Parameter | Hasil | Failure Rate |
+|---|---|---|---|
+| 1 | Spawn rate bertahap | RPS tertinggi @ **500 users** | 0% |
+| 2 | Spawn rate 50 | Max concurrent user: **700** | 0,01% (3 failure, reda lalu stabil) |
+| 3 | Spawn rate 100 | Max concurrent user: **600** | 0% |
+| 4 | Spawn rate 200 | Max concurrent user: **600** | 0% |
+| 5 | Spawn rate 500 | Max concurrent user: **500** | 0% |
+
+**Catatan Skenario 2:** Pada percobaan 700 user dengan spawn rate 50, ditemukan 3 failure (`CatchResponseError`) yang muncul singkat di awal pengukuran lalu tidak bertambah lagi hingga akhir durasi pengujian. Jika diuji dengan 600 user maka failure rate akan sama seperti skenario akhir yaitu 0%.
+
+### 11.3 Analisis
+
+**Pengaruh spawn rate terhadap kapasitas maksimal.** Semakin tinggi spawn rate, maka semakin rendah jumlah concurrent user yang dapat ditangani sistem secara stabil:
+
+| Spawn Rate | Max Concurrent User Stabil |
+|---|---|
+| 50 | 700 |
+| 100 | 600 |
+| 200 | 600 |
+| 500 | 500 |
+
+Hal ini wajar karena spawn rate tinggi membuat banyak koneksi baru terbentuk dalam waktu sangat singkat, sehingga worker Gunicorn (4 worker per App Server) dan connection pool MongoDB (`maxPoolSize=200`) lebih cepat jenuh dibandingkan ketika koneksi baru terbentuk secara gradual.
+
+**Endpoint yang paling sering gagal saat overload** adalah `/products?[filters]` dan `/products/<id>` — sejalan dengan bobot task tertinggi pada `CustomerUser` di `locustfile.py`, di mana endpoint katalog produk menerima proporsi traffic terbesar.
+
+### 11.4 Screenshot Hasil Load Testing
+
+
+**Skenario 1 — RPS Tertinggi (500 users)**
+- Grafik RPS, Response Time, Failure Rate, & Number of Users: ![RPS1](result/locust-skenario1-rps.jpg)
+- CPU/Memory (htop) — MongoDB & App Server 1/2/3: ![HTOP1](result/locust-skenario1-htop.jpg)
+
+**Skenario 2 — Spawn Rate 50 (700 users)**
+- Grafik RPS, Response Time, Failure Rate, & Number of Users: ![RPS2](result/locust-skenario2-rps.jpg)
+- CPU/Memory (htop) — MongoDB & App Server 1/2/3: ![HTOP2](result/locust-skenario2-htop.jpg)
+
+**Skenario 3 — Spawn Rate 100 (600 users)**
+- Grafik RPS, Response Time, Failure Rate, & Number of Users: ![RPS3](result/locust-skenario3-rps.jpg)
+- CPU/Memory (htop) — MongoDB & App Server 1/2/3: ![HTOP3](result/locust-skenario3-htop.jpg)
+
+**Skenario 4 — Spawn Rate 200 (600 users)**
+- Grafik RPS, Response Time, Failure Rate, & Number of Users: ![RPS4](result/locust-skenario4-rps.jpg)
+- CPU/Memory (htop) — MongoDB & App Server 1/2/3: ![HTOP4](result/locust-skenario4-htop.jpg) 
+
+**Skenario 5 — Spawn Rate 500 (500 users)**
+- Grafik RPS, Response Time, Failure Rate, & Number of Users: ![RPS5](result/locust-skenario5-rps.jpg)
+- CPU/Memory (htop) — MongoDB & App Server 1/2/3: ![HTOP5](result/locust-skenario5-htop.jpg)
+
+---
+
