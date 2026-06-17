@@ -256,4 +256,131 @@ export MONGO_URI="mongodb://10.184.0.6:27017/orderdb"
 # Menjalankan Gunicorn sebagai daemon
 gunicorn -w 4 -b 0.0.0.0:5000 app:app --daemon
 ```
+
+## 9. Implementasi Load Balancer & Frontend (vm2-nginx-frontend)
+> **VM:** `vm2-nginx-frontend` | IP Internal: `10.184.0.2` | IP External: `34.101.72.188`
+> **Spesifikasi:** 1 vCPU, 1 GB RAM, $6/bulan
+
+### 9.1 Instalasi dan Tuning Nginx
+Nginx diinstal di server `vm2` sebagai Reverse Proxy, Load Balancer, sekaligus Web Server statis untuk menyajikan file frontend.
+```bash
+# Update package list dan install Nginx
+sudo apt update && sudo apt install nginx -y
+
+# Mengatur kepemilikan folder agar bisa dimodifikasi oleh user aktif
+sudo chown -R $USER:$USER /var/www/html
+sudo chmod -R 755 /var/www/html
+```
+
+Tuning dilakukan pada `/etc/nginx/sites-available/default` untuk menangani lonjakan traffic:
+- `worker_processes auto`: Menyesuaikan thread worker secara dinamis dengan core CPU.
+- `gzip on`: Mengurangi ukuran transfer file text (HTML/CSS/JS) sehingga menghemat bandwidth dan meningkatkan kecepatan muat halaman.
+- `keepalive_timeout 65`: Mempertahankan koneksi TCP client tetap terbuka demi efisiensi handshake.
+
+### 9.2 Konfigurasi Load Balancing (Upstream)
+Kami mengonfigurasi upstream backend dengan strategi **Least Connections (`least_conn`)** agar request diarahkan ke server dengan koneksi aktif paling sedikit. Hal ini mencegah overload pada salah satu server.
+
+Kami juga mengaktifkan **Passive Health Check** menggunakan parameter `max_fails=3` dan `fail_timeout=10s` dikombinasikan dengan `proxy_next_upstream`. Jika salah satu backend mati, Nginx secara otomatis melewatkan server tersebut dan mendistribusikan request ke backend yang aktif secara real-time tanpa mengembalikan error 502/504 ke pengguna.
+
+File `/etc/nginx/sites-available/default` yang dikonfigurasi:
+```nginx
+upstream backend {
+    least_conn;
+    server 10.184.0.3:5000 max_fails=3 fail_timeout=10s;
+    server 10.184.0.4:5000 max_fails=3 fail_timeout=10s;
+    server 10.184.0.5:5000 max_fails=3 fail_timeout=10s;
+    keepalive 64;
+}
+
+server {
+    listen 80 default_server;
+    server_name _;
+    root /var/www/html;
+    index index.html;
+
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript;
+
+    # Serve static frontend
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    # API Rewrite & Proxy (mengatasi mismatch singular/plural dari frontend)
+    location /order {
+        if ($request_method = POST) { rewrite ^/order$ /orders break; }
+        if ($request_method = GET) { rewrite ^/order/(.*)$ /orders/$1 break; }
+        if ($request_method = PUT) { rewrite ^/order/(.*)$ /orders/$1/status break; }
+
+        proxy_pass http://backend;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_next_upstream error timeout http_500 http_502 http_503 http_504;
+    }
+
+    location /orders {
+        proxy_pass http://backend;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_next_upstream error timeout http_500 http_502 http_503 http_504;
+    }
+
+    location /auth/ {
+        proxy_pass http://backend;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    location /products {
+        proxy_pass http://backend;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    location /admin/ {
+        proxy_pass http://backend;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    location /health {
+        proxy_pass http://backend;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+```
+
+### 9.3 Konfigurasi Frontend (CORS-free)
+File `index.html` dan `styles.css` disalin dari `Resources/FE/` ke `/var/www/html/` di `vm2`.
+Kami mengubah variabel `API_BASE` pada file `index.html` menjadi:
+```javascript
+const API_BASE = "";
+```
+Dengan merujuk ke path kosong (`""`), semua API call dari browser diarahkan secara otomatis ke IP Load Balancer (`http://34.101.72.188`) port 80. Nginx bertindak sebagai gerbang tunggal yang menyajikan file statis sekaligus melakukan reverse proxy ke backend server, sehingga menghindari isu Cross-Origin Resource Sharing (CORS) tanpa membutuhkan konfigurasi tambahan pada sisi backend.
+
+#### Screenshot Pendukung:
+- **Status Nginx Active:**
+  ![Nginx Status](./result/nginx_status.png)
+- **Tampilan Frontend & Hasil Hit API:**
+  ![Frontend Active](./result/frontend_active.png)
+
   
