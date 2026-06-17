@@ -71,6 +71,8 @@
           User={{ ansible_user }}
           WorkingDirectory=/opt/order-service
 
+          Environment="MONGO_URI=mongodb://10.184.0.6:27017/orderdb"
+          
           ExecStart=/usr/local/bin/gunicorn \
           -w 4 \
           --timeout 60 \
