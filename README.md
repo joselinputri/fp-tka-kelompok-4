@@ -383,4 +383,319 @@ Dengan merujuk ke path kosong (`""`), semua API call dari browser diarahkan seca
 - **Tampilan Frontend:**
   ![Frontend Active](./result/frontend_dashboard.png)
 
-  
+## 10. Ansible Deployment
+
+Pada bagian ini dilakukan proses otomatisasi deployment menggunakan Ansible.
+Tujuan dari konfigurasi ini adalah menyiapkan seluruh infrastruktur aplikasi:
+
+- Backend Flask server
+- MongoDB database server
+- Nginx load balancer
+- Systemd service untuk menjalankan aplikasi
+
+### 10.2 Preparation
+
+Sebelum menjalankan Ansible, pastikan:
+
+- Semua VM sudah aktif
+- SSH antar server dapat digunakan
+- Python3 tersedia pada target server
+
+### 10.2 Ansible Inventory Configuration
+
+Di vm4:
+```
+cat ~/.ssh/id_rsa.pub
+```
+copy semuanya.
+
+Di app1:
+```
+mkdir -p ~/.ssh
+nano ~/.ssh/authorized_keys
+```
+paste.
+
+Lalu:
+```
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+```
+Ulangi ke:
+
+app2:
+
+```10.184.0.4```
+
+app3:
+
+```10.184.0.5```
+5. Test ulang dari vm4
+```ssh -i ~/.ssh/id_rsa maritzaadelia076@10.184.0.3```
+
+harus langsung:
+
+```maritzaadelia076@vm3-appserver1-redis:~$```
+
+![tes ssh](./result/tes-ssh.jpeg)
+
+Check koneksi:
+
+```bash
+ansible all -i inventory.ini -m ping
+```
+ ![ansible ping](./result/ansible-ping.jpeg)
+ 
+File:
+`inventory.ini`
+
+File ini berfungsi untuk mendefinisikan seluruh server yang digunakan.
+
+Isi konfigurasi:
+```bash
+[frontend_servers]
+frontend1 ansible_host=10.184.0.2
+
+[appservers]
+app1 ansible_host=10.184.0.3
+app2 ansible_host=10.184.0.4
+app3 ansible_host=10.184.0.5
+
+[mongodb]
+mongo ansible_host=10.184.0.6
+
+[all:vars]
+ansible_user=maritzaadelia076
+ansible_ssh_private_key_file=/home/maritzaadelia076/.ssh/id_rsa
+ansible_python_interpreter=/usr/bin/python3
+ansible_become=true
+ansible_become_method=sudo
+```
+### 10.3 Backend Deployment
+File:
+`
+setup_appserver.yml
+`
+Playbook ini digunakan untuk melakukan deployment aplikasi Flask.
+```bash
+---
+- name: Setup Flask App Server
+  hosts: appservers
+  become: yes
+
+  tasks:
+
+    - name: Update packages
+      apt:
+        update_cache: yes
+
+
+    - name: Install python dependencies
+      apt:
+        name:
+          - python3
+          - python3-pip
+          - git
+        state: present
+
+
+    - name: Create app directory
+      file:
+        path: /opt/order-service
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0755'
+
+
+    - name: Copy Flask app
+      copy:
+        src: app.py
+        dest: /opt/order-service/app.py
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0644'
+
+
+    - name: Copy requirements
+      copy:
+        src: requirements.txt
+        dest: /opt/order-service/requirements.txt
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0644'
+
+
+    - name: Install python libraries
+      pip:
+        requirements: /opt/order-service/requirements.txt
+        executable: pip3
+
+
+    - name: Install gunicorn
+      pip:
+        name:
+          - gunicorn
+        executable: pip3
+
+
+    - name: Create systemd service
+      copy:
+        dest: /etc/systemd/system/order.service
+        content: |
+          [Unit]
+          Description=Order Processing Flask Service
+          After=network.target
+
+          [Service]
+          User={{ ansible_user }}
+          WorkingDirectory=/opt/order-service
+
+          Environment="MONGO_URI=mongodb://10.184.0.6:27017/orderdb"
+          
+          ExecStart=/usr/local/bin/gunicorn \
+          -w 4 \
+          --timeout 60 \
+          -b 0.0.0.0:5000 \
+          app:app
+
+          Restart=always
+          RestartSec=5
+
+          [Install]
+          WantedBy=multi-user.target
+
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+
+    - name: Enable and start order service
+      systemd:
+        name: order
+        enabled: yes
+        state: restarted
+```
+
+```bash
+---
+- name: Setup MongoDB Server
+  hosts: mongodb
+  become: yes
+
+
+  tasks:
+
+
+    - name: Update apt
+      apt:
+        update_cache: yes
+
+
+    - name: Install MongoDB
+      apt:
+        name: mongodb
+        state: present
+
+
+    - name: Start MongoDB
+      systemd:
+        name: mongodb
+        state: started
+        enabled: yes
+
+
+    - name: Create index info file
+      copy:
+        dest: /tmp/indexes.txt
+        content: |
+          orders:
+          order_id unique
+          created_at index
+          status index
+```
+
+```bash
+---
+- name: Setup Nginx Load Balancer
+  hosts: frontend_servers
+  become: yes
+
+  tasks:
+
+    - name: Install nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+
+    - name: Configure nginx
+      copy:
+        dest: /etc/nginx/sites-available/default
+        content: |
+
+          upstream backend {
+              least_conn;
+
+              server 10.184.0.3:5000;
+              server 10.184.0.4:5000;
+              server 10.184.0.5:5000;
+          }
+
+
+          server {
+
+              listen 80;
+
+
+              location / {
+
+                  root /var/www/html;
+                  index index.html;
+
+              }
+
+
+              location /api/ {
+
+                  proxy_pass http://backend;
+
+              }
+          }
+
+
+    - name: Restart nginx
+      systemd:
+        name: nginx
+        state: restarted
+```
+
+lalu, jalankan:
+```
+ansible-playbook -i inventory.ini setup_appserver.yml --syntax-check
+```
+```
+ansible-playbook -i inventory.ini setup_mongodb.yml --syntax-check
+```
+```
+ansible-playbook -i inventory.ini setup_nginx.yml --syntax-check
+```
+
+ ![ansible syntax](./result/ansible-syntaxcheck.jpeg)
+
+ ![ansible](./result/ansible.jpeg)
+ 
+  ### 10.4 Testing Deployment
+  Test Backend Health Check: 
+  ```
+  curl http://34.101.72.188
+```
+   ![ansible curl](./result/ansible-curl.jpeg)
+   
+  ````
+  curl http://34.101.72.188/health
+````
+Test Gunicorn:
+  ![ansible gunicorn](./result/ansible-5000.jpeg)
