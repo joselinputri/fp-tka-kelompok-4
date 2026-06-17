@@ -380,7 +380,7 @@ Dengan merujuk ke path kosong (`""`), semua API call dari browser diarahkan seca
 #### Screenshot Pendukung:
 - **Status Nginx Active:**
   ![Nginx Status](./result/nginx_status.png)
-- **Tampilan Frontend & Hasil Hit API:**
+- **Tampilan Frontend:**
   ![Frontend Active](./result/frontend_dashboard.png)
 
   
