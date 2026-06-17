@@ -393,7 +393,15 @@ Tujuan dari konfigurasi ini adalah menyiapkan seluruh infrastruktur aplikasi:
 - Nginx load balancer
 - Systemd service untuk menjalankan aplikasi
 
-### 10.2 Preparation
+| Komponen | Deskripsi |
+|---|---|
+| **Backend Flask** | Server aplikasi yang menangani request API |
+| **MongoDB** | Database server untuk menyimpan data order |
+| **Nginx** | Load balancer yang mendistribusikan traffic ke backend |
+| **Systemd** | Service manager untuk menjalankan aplikasi secara otomatis |
+
+
+### 10.1 Preparation
 
 Sebelum menjalankan Ansible, pastikan:
 
@@ -403,37 +411,40 @@ Sebelum menjalankan Ansible, pastikan:
 
 ### 10.2 Ansible Inventory Configuration
 
-Di vm4:
-```
+### Setup SSH Key
+
+Langkah ini memungkinkan **vm4 (control node)** terhubung ke seluruh app server tanpa password.
+
+**Di vm4 (control node)** — salin public key:
+
+```bash
 cat ~/.ssh/id_rsa.pub
 ```
-copy semuanya.
 
-Di app1:
-```
+**Di app1, app2, app3 (target server)** — tambahkan public key ke authorized_keys:
+
+```bash
 mkdir -p ~/.ssh
-nano ~/.ssh/authorized_keys
-```
-paste.
-
-Lalu:
-```
+nano ~/.ssh/authorized_keys   # paste public key di sini
 chmod 700 ~/.ssh
 chmod 600 ~/.ssh/authorized_keys
 ```
-Ulangi ke:
 
-app2:
+Target server dan IP-nya:
 
-```10.184.0.4```
+| Server | IP |
+|---|---|
+| app1 | 10.184.0.3 |
+| app2 | 10.184.0.4 |
+| app3 | 10.184.0.5 |
 
-app3:
+**Test koneksi SSH dari vm4:**
 
-```10.184.0.5```
-5. Test ulang dari vm4
-```ssh -i ~/.ssh/id_rsa maritzaadelia076@10.184.0.3```
+```bash
+ssh -i ~/.ssh/id_rsa maritzaadelia076@10.184.0.3
+```
 
-harus langsung:
+Output yang diharapkan:
 
 ```maritzaadelia076@vm3-appserver1-redis:~$```
 
@@ -449,47 +460,58 @@ ansible all -i inventory.ini -m ping
 File:
 `inventory.ini`
 
-File ini berfungsi untuk mendefinisikan seluruh server yang digunakan.
+### File: `inventory.ini`
+
+> **Fungsi:** Mendefinisikan seluruh server yang dikelola Ansible beserta kredensial dan konfigurasi koneksi SSH-nya. File ini menjadi referensi utama untuk semua perintah dan playbook Ansible.
 
 Isi konfigurasi:
 ```bash
+# Grup server frontend (Nginx load balancer)
 [frontend_servers]
 frontend1 ansible_host=10.184.0.2
 
+# Grup server backend (Flask app)
 [appservers]
 app1 ansible_host=10.184.0.3
 app2 ansible_host=10.184.0.4
 app3 ansible_host=10.184.0.5
 
+# Grup server database (MongoDB)
 [mongodb]
 mongo ansible_host=10.184.0.6
 
+# Variabel global yang berlaku untuk semua host
 [all:vars]
-ansible_user=maritzaadelia076
-ansible_ssh_private_key_file=/home/maritzaadelia076/.ssh/id_rsa
-ansible_python_interpreter=/usr/bin/python3
-ansible_become=true
-ansible_become_method=sudo
+ansible_user=maritzaadelia076                                    # Username SSH di semua server
+ansible_ssh_private_key_file=/home/maritzaadelia076/.ssh/id_rsa # Path ke private key
+ansible_python_interpreter=/usr/bin/python3                      # Interpreter Python yang digunakan Ansible
+ansible_become=true                                              # Aktifkan privilege escalation (sudo)
+ansible_become_method=sudo                                       # Metode escalation menggunakan sudo
 ```
+
 ### 10.3 Backend Deployment
 File:
 `
 setup_appserver.yml
 `
-Playbook ini digunakan untuk melakukan deployment aplikasi Flask.
+### File: `setup_appserver.yml`
+
+> **Fungsi:** Mengotomatisasi deployment aplikasi Flask ke semua app server. Playbook ini menginstal dependensi, menyalin source code, dan mendaftarkan aplikasi sebagai systemd service agar berjalan otomatis saat server restart.
+
 ```bash
 ---
 - name: Setup Flask App Server
-  hosts: appservers
-  become: yes
+  hosts: appservers    # Dijalankan di semua server dalam grup [appservers]
+  become: yes          # Jalankan sebagai root (sudo)
 
   tasks:
 
+    # Pastikan package list up-to-date sebelum instalasi
     - name: Update packages
       apt:
         update_cache: yes
 
-
+    # Install runtime Python dan Git untuk dependency management
     - name: Install python dependencies
       apt:
         name:
@@ -498,7 +520,7 @@ Playbook ini digunakan untuk melakukan deployment aplikasi Flask.
           - git
         state: present
 
-
+    # Buat direktori kerja aplikasi dengan permission yang tepat
     - name: Create app directory
       file:
         path: /opt/order-service
@@ -507,7 +529,7 @@ Playbook ini digunakan untuk melakukan deployment aplikasi Flask.
         group: "{{ ansible_user }}"
         mode: '0755'
 
-
+    # Salin source code Flask dari control node ke semua app server
     - name: Copy Flask app
       copy:
         src: app.py
@@ -516,7 +538,7 @@ Playbook ini digunakan untuk melakukan deployment aplikasi Flask.
         group: "{{ ansible_user }}"
         mode: '0644'
 
-
+    # Salin file daftar library Python yang dibutuhkan
     - name: Copy requirements
       copy:
         src: requirements.txt
@@ -525,52 +547,54 @@ Playbook ini digunakan untuk melakukan deployment aplikasi Flask.
         group: "{{ ansible_user }}"
         mode: '0644'
 
-
+    # Install semua library dari requirements.txt menggunakan pip3
     - name: Install python libraries
       pip:
         requirements: /opt/order-service/requirements.txt
         executable: pip3
 
-
+    # Install Gunicorn sebagai WSGI server untuk menjalankan Flask di production
     - name: Install gunicorn
       pip:
         name:
           - gunicorn
         executable: pip3
 
-
+    # Buat unit file systemd agar aplikasi berjalan otomatis sebagai service
     - name: Create systemd service
       copy:
         dest: /etc/systemd/system/order.service
         content: |
           [Unit]
           Description=Order Processing Flask Service
-          After=network.target
+          After=network.target    # Service dijalankan setelah network siap
 
           [Service]
           User={{ ansible_user }}
           WorkingDirectory=/opt/order-service
 
+          # Inject URI koneksi MongoDB sebagai environment variable
           Environment="MONGO_URI=mongodb://10.184.0.6:27017/orderdb"
-          
+
+          # Jalankan Flask via Gunicorn dengan 4 worker process, bind ke port 5000
           ExecStart=/usr/local/bin/gunicorn \
           -w 4 \
           --timeout 60 \
           -b 0.0.0.0:5000 \
           app:app
 
-          Restart=always
-          RestartSec=5
+          Restart=always      # Restart otomatis jika service crash
+          RestartSec=5        # Tunggu 5 detik sebelum restart
 
           [Install]
           WantedBy=multi-user.target
 
-
+    # Reload systemd agar mengenali unit file baru
     - name: Reload systemd
       systemd:
         daemon_reload: yes
 
-
+    # Aktifkan service (auto-start on boot) dan restart untuk apply perubahan
     - name: Enable and start order service
       systemd:
         name: order
@@ -578,48 +602,56 @@ Playbook ini digunakan untuk melakukan deployment aplikasi Flask.
         state: restarted
 ```
 
-```bash
+### File: `setup_mongodb.yml`
+
+> **Fungsi:** Menginstal dan menjalankan MongoDB pada server database, serta mendefinisikan index yang dibutuhkan aplikasi untuk performa query yang optimal.
+
+```yaml
 ---
 - name: Setup MongoDB Server
-  hosts: mongodb
+  hosts: mongodb    # Hanya dijalankan di server dalam grup [mongodb]
   become: yes
-
 
   tasks:
 
-
+    # Pastikan package list up-to-date sebelum instalasi
     - name: Update apt
       apt:
         update_cache: yes
 
-
+    # Install MongoDB dari repository Ubuntu
     - name: Install MongoDB
       apt:
         name: mongodb
         state: present
 
-
+    # Pastikan MongoDB berjalan dan aktif saat server boot
     - name: Start MongoDB
       systemd:
         name: mongodb
         state: started
         enabled: yes
 
-
+    # Catat rencana index ke file dokumentasi
+    # Index ini perlu dibuat secara manual atau via script migrasi
     - name: Create index info file
       copy:
         dest: /tmp/indexes.txt
         content: |
           orders:
-          order_id unique
-          created_at index
-          status index
+          order_id unique     # Unique index untuk mencegah duplikasi order
+          created_at index    # Index untuk query berdasarkan tanggal
+          status index        # Index untuk filter berdasarkan status order
 ```
+
+### File: `setup_nginx.yml`
+
+> **Fungsi:** Menginstal Nginx dan mengkonfigurasinya sebagai load balancer yang mendistribusikan traffic ke ketiga backend server menggunakan algoritma **Least Connections**.
 
 ```bash
 ---
 - name: Setup Nginx Load Balancer
-  hosts: frontend_servers
+  hosts: frontend_servers    # Dijalankan di server dalam grup [frontend_servers]
   become: yes
 
   tasks:
@@ -630,72 +662,82 @@ Playbook ini digunakan untuk melakukan deployment aplikasi Flask.
         state: present
         update_cache: yes
 
-
     - name: Configure nginx
       copy:
         dest: /etc/nginx/sites-available/default
         content: |
 
+          # Definisi upstream: kelompok backend server yang menerima traffic
           upstream backend {
-              least_conn;
+              least_conn;    # Kirim request ke server dengan koneksi paling sedikit
 
-              server 10.184.0.3:5000;
-              server 10.184.0.4:5000;
-              server 10.184.0.5:5000;
+              server 10.184.0.3:5000;    # app1
+              server 10.184.0.4:5000;    # app2
+              server 10.184.0.5:5000;    # app3
           }
-
 
           server {
+              listen 80;    # Nginx mendengarkan koneksi di port 80 (HTTP)
 
-              listen 80;
-
-
+              # Sajikan file statis (frontend) dari direktori default
               location / {
-
                   root /var/www/html;
                   index index.html;
-
               }
 
-
+              # Teruskan semua request ke path /api/ ke backend Flask
               location /api/ {
-
                   proxy_pass http://backend;
-
               }
           }
 
-
+    # Restart Nginx agar konfigurasi baru aktif
     - name: Restart nginx
       systemd:
         name: nginx
         state: restarted
 ```
 
-lalu, jalankan:
-```
+## 10.4 Menjalankan Playbook
+
+Sebelum deploy, lakukan syntax check untuk memastikan tidak ada kesalahan:
+
+```bash
 ansible-playbook -i inventory.ini setup_appserver.yml --syntax-check
-```
-```
 ansible-playbook -i inventory.ini setup_mongodb.yml --syntax-check
-```
-```
 ansible-playbook -i inventory.ini setup_nginx.yml --syntax-check
 ```
 
- ![ansible syntax](./result/ansible-syntaxcheck.jpeg)
+![ansible syntax check](./result/ansible-syntaxcheck.jpeg)
 
- ![ansible](./result/ansible.jpeg)
- 
-  ### 10.4 Testing Deployment
-  Test Backend Health Check: 
-  ```
-  curl http://34.101.72.188
+Setelah syntax check berhasil, jalankan semua playbook **sesuai urutan**:
+
+```bash
+# 1. Deploy database terlebih dahulu
+ansible-playbook -i inventory.ini setup_mongodb.yml
+
+# 2. Deploy backend
+ansible-playbook -i inventory.ini setup_appserver.yml
+
+# 3. Deploy load balancer
+ansible-playbook -i inventory.ini setup_nginx.yml
 ```
-   ![ansible curl](./result/ansible-curl.jpeg)
-   
-  ````
-  curl http://34.101.72.188/health
-````
-Test Gunicorn:
-  ![ansible gunicorn](./result/ansible-5000.jpeg)
+
+![ansible run](./result/ansible.jpeg)
+
+---
+
+## 10.5 Testing Deployment
+
+### Health Check via Load Balancer
+
+```bash
+curl http://34.101.72.188
+curl http://34.101.72.188/health
+```
+
+![ansible curl](./result/ansible-curl.jpeg)
+
+### Test Koneksi Langsung ke Backend (Gunicorn Port 5000)
+
+![ansible gunicorn](./result/ansible-5000.jpeg)
