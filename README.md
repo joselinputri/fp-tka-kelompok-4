@@ -1,3 +1,50 @@
+## 👥 Anggota Kelompok
+
+| Nama Anggota | NRP |
+| :--- | :--- |
+| Syifa Nurul Alfiah | 5027241019 |
+| Muhammad Fachry Shalahuddin Rusamsi | 5027241031 |
+| Dimas Satya Andhika | 5027241032 |
+| Abiyyu Raihan Putra Wikanto | 5027241042 |
+| Ahmad Yafi Ar Rizq | 5027241066 |
+| Afriza Tristan Calendra Rajasa | 5027241104 |
+| Maritza Adelia Sucipto | 5027241111 |
+| Putri Joselina Silitonga | 5027241116 |
+
+---
+
+## Pembuatan VM & Konfigurasi Firewall
+
+Bagian ini mendokumentasikan spesifikasi awal infrastruktur Virtual Machine (VM) yang digunakan dalam klaster proyek ini, serta arsitektur keamanan jaringan (VPC Firewall Rules) yang dikonfigurasi pada Google Cloud Platform.
+
+### 1. Spesifikasi Klaster 5 Virtual Machine (VM)
+Seluruh komponen sistem dideploy ke dalam 5 instance VM di region Jakarta dengan pembagian tugas sebagai berikut:
+
+| Status | Nama VM | Zone | IP Internal | IP External | Tipe Mesin / Spesifikasi |
+| :---: | :--- | :--- | :--- | :--- | :--- |
+| 🟢 | `vm2-nginx-frontend` | `asia-southeast2-a` | `-` | `-` | `e2-micro` (2 vCPU, 1 GB RAM, 10 GB Disk) |
+| 🟢 | `vm3-appserver1-redis` | `asia-southeast2-a` | `-` | `-` | `e2-small` (2 vCPU, 2 GB RAM, 10 GB Disk) |
+| 🟢 | `vm3-appserver2` | `asia-southeast2-a` | `-` | `-` | `e2-small` (2 vCPU, 2 GB RAM, 10 GB Disk) |
+| 🟢 | `vm3-appserver3` | `asia-southeast2-a` | `-` | `-` | `e2-small` (2 vCPU, 2 GB RAM, 10 GB Disk) |
+| 🟢 | `vm4-mongodb` | `asia-southeast2-a` | `-` | `-` | `e2-medium` (2 vCPU, 4 GB RAM, 10 GB Disk) |
+
+---
+
+### 2. Arsitektur Jaringan & Aturan VPC Firewall
+Secara default, seluruh VM di GCP berada dalam kondisi tertutup dari koneksi luar demi alasan keamanan. Konfigurasi firewall network dipisahkan menjadi dua lapis kebijakan utama:
+
+#### A. Isolasi Jaringan Internal (Amankan Komunikasi Antar-VM)
+Memanfaatkan rule bawaan **`default-allow-internal`** yang mengizinkan komunikasi penuh antar-VM yang berada di dalam satu VPC lokal. 
+* **Dampaknya:** Aplikasi Flask (Port 5000), Database MongoDB (Port 27017), dan Caching Redis (Port 6379) bisa saling bertukar data dengan lancar menggunakan **IP Internal**, tanpa perlu khawatir terekspos atau bisa diintip dari internet publik.
+
+#### B. Pembukaan Akses Publik (Khusus Web Server Frontend)
+Dibuat aturan kustom baru bernama **`allow-http-https`** serta mengaktifkan tag `http-server` dan `https-server` khusus untuk `vm2-nginx-frontend`.
+* **Nama Rule:** `allow-http-https`
+* **Target Tags:** `http-server`, `https-server`
+* **Source IPv4 Ranges:** `0.0.0.0/0` (Terbuka untuk internet publik)
+* **Protocols & Ports:** `tcp:80` (HTTP) dan `tcp:443` (HTTPS)
+* **Fungsi:** Mengizinkan *traffic* dari luar (termasuk saat dilakukan pengujian beban menggunakan Locust Load Testing) untuk masuk mengakses Nginx Reverse Proxy di node frontend.
+
 # Implementasi Database — MongoDB (vm4-mongodb)
 > **VM:** `vm4-mongodb` | IP Internal: `10.184.0.6` | IP External: `34.101.207.8`
 > **Spesifikasi:** 2 vCPU, 2 GB RAM, $18/bulan
