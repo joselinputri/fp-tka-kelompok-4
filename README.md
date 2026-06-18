@@ -12,6 +12,8 @@
 | Putri Joselina Silitonga | 5027241116 |
 
 ---
+## Rancangan Arsistektur
+<img width="696" height="651" alt="TKA_FP_KEL 4 drawio (1)" src="https://github.com/user-attachments/assets/9dc63ee2-be1b-4f9d-b7bd-330092b5381a" />
 
 ## Provisioning VM & Konfigurasi Firewall 
 
