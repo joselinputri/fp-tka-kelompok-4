@@ -868,3 +868,25 @@ Hal ini wajar karena spawn rate tinggi membuat banyak koneksi baru terbentuk dal
 
 ---
 
+## 12. Test API Postman
+### 12.1 POST /auth/register
+<img width="2130" height="1444" alt="image" src="https://github.com/user-attachments/assets/72d71eb9-47d2-41b7-904a-4a39a343a66e" />
+
+### 12.2 POST /auth/login
+<img width="2112" height="1414" alt="image" src="https://github.com/user-attachments/assets/dc202d8c-043f-4268-a31f-7b5871859ae7" />
+
+### 12.3 GET /auth/me
+<img width="2110" height="1458" alt="image" src="https://github.com/user-attachments/assets/a2ab38ec-2fba-46e2-a914-26ab088fb72f" />
+
+### 12.4 GET /products
+
+### 12.5 GET /products/<id>
+### 12.6 POST /orders
+### 12.7 GET /orders/<id>
+### 12.8 PUT /orders/<id>/status
+### 12.9 GET /admin/stats
+### 12.10 GET /admin/users
+### 12.11 GET /admin/logs
+### 12.12 GET /health
+<img width="2122" height="1174" alt="image" src="https://github.com/user-attachments/assets/f8896643-2af7-4567-9083-f521a8fa3a8d" />
+
