@@ -1,4 +1,4 @@
-## 👥 Anggota Kelompok
+## Anggota Kelompok
 
 | Nama Anggota | NRP |
 | :--- | :--- |
@@ -13,20 +13,20 @@
 
 ---
 
-## Pembuatan VM & Konfigurasi Firewall
+## Provisioning VM & Konfigurasi Firewall 
 
 Bagian ini mendokumentasikan spesifikasi awal infrastruktur Virtual Machine (VM) yang digunakan dalam klaster proyek ini, serta arsitektur keamanan jaringan (VPC Firewall Rules) yang dikonfigurasi pada Google Cloud Platform.
 
 ### 1. Spesifikasi Klaster 5 Virtual Machine (VM)
 Seluruh komponen sistem dideploy ke dalam 5 instance VM di region Jakarta dengan pembagian tugas sebagai berikut:
 
-| Status | Nama VM | Zone | IP Internal | IP External | Tipe Mesin / Spesifikasi |
-| :---: | :--- | :--- | :--- | :--- | :--- |
-| 🟢 | `vm2-nginx-frontend` | `asia-southeast2-a` | `-` | `-` | `e2-micro` (2 vCPU, 1 GB RAM, 10 GB Disk) |
-| 🟢 | `vm3-appserver1-redis` | `asia-southeast2-a` | `-` | `-` | `e2-small` (2 vCPU, 2 GB RAM, 10 GB Disk) |
-| 🟢 | `vm3-appserver2` | `asia-southeast2-a` | `-` | `-` | `e2-small` (2 vCPU, 2 GB RAM, 10 GB Disk) |
-| 🟢 | `vm3-appserver3` | `asia-southeast2-a` | `-` | `-` | `e2-small` (2 vCPU, 2 GB RAM, 10 GB Disk) |
-| 🟢 | `vm4-mongodb` | `asia-southeast2-a` | `-` | `-` | `e2-medium` (2 vCPU, 4 GB RAM, 10 GB Disk) |
+| Nama VM | Zone | IP Internal | IP External | Tipe Mesin / Spesifikasi |
+| :--- | :--- | :--- | :--- | :--- |
+| `vm2-nginx-frontend` | `asia-southeast2-a` | `10.184.0.2` | `34.101.72.188` | `e2-micro` (2 vCPU, 1 GB RAM, 10 GB Disk) |
+| `vm3-appserver1-redis` | `asia-southeast2-a` | `10.184.0.3` | `34.101.207.217` | `e2-small` (2 vCPU, 2 GB RAM, 10 GB Disk) |
+| `vm3-appserver2` | `asia-southeast2-a` | `10.184.0.4` | `34.128.83.168` | `e2-small` (2 vCPU, 2 GB RAM, 10 GB Disk) |
+| `vm3-appserver3` | `asia-southeast2-a` | `10.184.0.5` | `34.50.119.137` | `e2-small` (2 vCPU, 2 GB RAM, 10 GB Disk) |
+| `vm4-mongodb` | `asia-southeast2-a` | `10.184.0.6` | `34.101.207.8` | `e2-medium` (2 vCPU, 4 GB RAM, 10 GB Disk) |
 
 ---
 
