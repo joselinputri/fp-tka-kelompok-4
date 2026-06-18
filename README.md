@@ -880,14 +880,29 @@ Hal ini wajar karena spawn rate tinggi membuat banyak koneksi baru terbentuk dal
 <img width="2110" height="1458" alt="image" src="https://github.com/user-attachments/assets/a2ab38ec-2fba-46e2-a914-26ab088fb72f" />
 
 ### 12.4 GET /products
+<img width="2122" height="1584" alt="image" src="https://github.com/user-attachments/assets/67983e82-2d0e-4a7b-b020-92168c418bb7" />
 
 ### 12.5 GET /products/<id>
+<img width="2142" height="1512" alt="image" src="https://github.com/user-attachments/assets/b719893a-3a1a-46ee-99b6-92fe638622ae" />
+
 ### 12.6 POST /orders
+<img width="2124" height="1598" alt="image" src="https://github.com/user-attachments/assets/e3046c01-c317-402a-82fd-f43d7349a27e" />
+
 ### 12.7 GET /orders/<id>
+<img width="2104" height="1590" alt="image" src="https://github.com/user-attachments/assets/528ff985-79bf-4b5e-9144-5d4bb86e25e9" />
+
 ### 12.8 PUT /orders/<id>/status
+<img width="2106" height="1158" alt="image" src="https://github.com/user-attachments/assets/4b927b35-a455-48e8-ae83-1b1803cc0c2c" />
+
 ### 12.9 GET /admin/stats
+<img width="2132" height="1586" alt="image" src="https://github.com/user-attachments/assets/b8af494b-8d24-46f4-9048-7f9504efe054" />
+
 ### 12.10 GET /admin/users
+<img width="2110" height="1580" alt="image" src="https://github.com/user-attachments/assets/eaeff190-7f8b-4df7-a2e3-934a35675912" />
+
 ### 12.11 GET /admin/logs
+<img width="2132" height="1596" alt="image" src="https://github.com/user-attachments/assets/39e0ad9a-f2fc-495f-a10a-f150f184cad6" />
+
 ### 12.12 GET /health
 <img width="2122" height="1174" alt="image" src="https://github.com/user-attachments/assets/f8896643-2af7-4567-9083-f521a8fa3a8d" />
 
