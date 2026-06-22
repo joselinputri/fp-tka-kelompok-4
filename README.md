@@ -19,17 +19,15 @@
 
 Bagian ini mendokumentasikan spesifikasi awal infrastruktur Virtual Machine (VM) yang digunakan dalam klaster proyek ini, serta arsitektur keamanan jaringan (VPC Firewall Rules) yang dikonfigurasi pada Google Cloud Platform.
 
-### 1. Spesifikasi Klaster 5 Virtual Machine (VM)
-Seluruh komponen sistem dideploy ke dalam 5 instance VM di region Jakarta dengan pembagian tugas sebagai berikut:
+### 1. Spesifikasi Klaster 3 Virtual Machine (VM)
+Seluruh komponen sistem dideploy ke dalam 3 instance VM di region Jakarta dengan pembagian tugas sebagai berikut:
 
 | Nama VM | Zone | IP Internal | IP External | Tipe Mesin / Spesifikasi | Estimasi Harga / Bulan |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `vm2-nginx-frontend` | `asia-southeast2-a` | `10.184.0.2` | `34.101.72.188` | `e2-micro` (2 vCPU, 1 GB RAM, 10 GB Disk) | $9.52 |
-| `vm3-appserver1-redis` | `asia-southeast2-a` | `10.184.0.3` | `34.101.207.217` | `e2-small` (2 vCPU, 2 GB RAM, 10 GB Disk) | $17.74 |
-| `vm3-appserver2` | `asia-southeast2-a` | `10.184.0.4` | `34.128.83.168` | `e2-small` (2 vCPU, 2 GB RAM, 10 GB Disk) | $17.74 |
-| `vm3-appserver3` | `asia-southeast2-a` | `10.184.0.5` | `34.50.119.137` | `e2-small` (2 vCPU, 2 GB RAM, 10 GB Disk) | $17.74 |
-| `vm4-mongodb` | `asia-southeast2-a` | `10.184.0.6` | `34.101.207.8` | `e2-medium` (2 vCPU, 4 GB RAM, 10 GB Disk) | $34.19 |
-| **Total Estimasi Biaya** | | | | | **$96.93** |
+| `frontend-server` | `asia-southeast2-a` | `10.184.0.2` | `34.50.117.141` | `e2-micro` (2 vCPU, 1 GB RAM, 10 GB Disk) | $9.52 |
+| `backend-appserver` | `asia-southeast2-a` | `10.184.0.3` | `34.101.207.8` | `e2-small` (2 vCPU, 2 GB RAM, 10 GB Disk) | $17.74 |
+| `database-mongodb` | `asia-southeast2-a` | `10.184.0.6` | `34.101.72.188` | `e2-medium` (2 vCPU, 4 GB RAM, 10 GB Disk) | $34.19 |
+| **Total Estimasi Biaya** | | | | | **$61.45** |
 
 ---
 
@@ -48,9 +46,9 @@ Dibuat aturan kustom baru bernama **`allow-http-https`** serta mengaktifkan tag 
 * **Protocols & Ports:** `tcp:80` (HTTP) dan `tcp:443` (HTTPS)
 * **Fungsi:** Mengizinkan *traffic* dari luar (termasuk saat dilakukan pengujian beban menggunakan Locust Load Testing) untuk masuk mengakses Nginx Reverse Proxy di node frontend.
 
-# Implementasi Database — MongoDB (vm4-mongodb)
-> **VM:** `vm4-mongodb` | IP Internal: `10.184.0.6` | IP External: `34.101.207.8`
-> **Spesifikasi:** 2 vCPU, 2 GB RAM, $18/bulan
+# Implementasi Database — MongoDB (database-mongodb)
+> **VM:** `database-mongodb` | IP Internal: `10.184.0.6` | IP External: `34.101.72.188`
+> **Spesifikasi:** 2 vCPU, 4 GB RAM, $34.19/bulan
 
 ---
 
@@ -280,7 +278,7 @@ mongodb://10.184.0.6:27017/orderdb
 ```
 
 ## 8. Deployment Backend (App Server)
-Layanan backend dideploy menggunakan Gunicorn dengan 4 worker pada 3 instance terpisah untuk mendukung load balancing.<br>
+Layanan backend dideploy menggunakan Gunicorn dengan 4 worker pada 1 instance untuk mendukung efisiensi resource.<br>
 **Konfigurasi Instance:**
 - Web Server: Gunicorn (WSGI HTTP Server)
 - Virtual Environment: Python 3.10 venv
@@ -292,9 +290,7 @@ Layanan backend dideploy menggunakan Gunicorn dengan 4 worker pada 3 instance te
 
 | Instance | IP Address |
 | :--- | :--- |
-| App Server 1 (Redis) | `34.101.207.217:5000` |
-| App Server 2 | `34.128.83.168:5000` |
-| App Server 3 | `34.50.119.137:5000` |
+| backend-appserver (Redis) | `34.101.207.8:5000` |
 
 
   Lalu jalankan perintah 
@@ -307,9 +303,9 @@ export MONGO_URI="mongodb://10.184.0.6:27017/orderdb"
 gunicorn -w 4 -b 0.0.0.0:5000 app:app --daemon
 ```
 
-## 9. Implementasi Load Balancer & Frontend (vm2-nginx-frontend)
-> **VM:** `vm2-nginx-frontend` | IP Internal: `10.184.0.2` | IP External: `34.101.72.188`
-> **Spesifikasi:** 1 vCPU, 1 GB RAM, $6/bulan
+## 9. Implementasi Load Balancer & Frontend (frontend-server)
+> **VM:** `frontend-server` | IP Internal: `10.184.0.2` | IP External: `34.50.117.141`
+> **Spesifikasi:** 1 vCPU, 1 GB RAM, $9.52/bulan
 
 ### 9.1 Instalasi dan Tuning Nginx
 Nginx diinstal di server `vm2` sebagai Reverse Proxy, Load Balancer, sekaligus Web Server statis untuk menyajikan file frontend.
@@ -327,18 +323,14 @@ Tuning dilakukan pada `/etc/nginx/sites-available/default` untuk menangani lonja
 - `gzip on`: Mengurangi ukuran transfer file text (HTML/CSS/JS) sehingga menghemat bandwidth dan meningkatkan kecepatan muat halaman.
 - `keepalive_timeout 65`: Mempertahankan koneksi TCP client tetap terbuka demi efisiensi handshake.
 
-### 9.2 Konfigurasi Load Balancing (Upstream)
-Kami mengonfigurasi upstream backend dengan strategi **Least Connections (`least_conn`)** agar request diarahkan ke server dengan koneksi aktif paling sedikit. Hal ini mencegah overload pada salah satu server.
-
-Kami juga mengaktifkan **Passive Health Check** menggunakan parameter `max_fails=3` dan `fail_timeout=10s` dikombinasikan dengan `proxy_next_upstream`. Jika salah satu backend mati, Nginx secara otomatis melewatkan server tersebut dan mendistribusikan request ke backend yang aktif secara real-time tanpa mengembalikan error 502/504 ke pengguna.
+### 9.2 Konfigurasi Proxy (Upstream)
+Kami mengonfigurasi upstream backend mengarah ke satu-satunya server backend yang aktif.
 
 File `/etc/nginx/sites-available/default` yang dikonfigurasi:
 ```nginx
 upstream backend {
     least_conn;
     server 10.184.0.3:5000 max_fails=3 fail_timeout=10s;
-    server 10.184.0.4:5000 max_fails=3 fail_timeout=10s;
-    server 10.184.0.5:5000 max_fails=3 fail_timeout=10s;
     keepalive 64;
 }
 
@@ -420,12 +412,12 @@ server {
 ```
 
 ### 9.3 Konfigurasi Frontend (CORS-free)
-File `index.html` dan `styles.css` disalin dari `Resources/FE/` ke `/var/www/html/` di `vm2`.
+File `index.html` dan `styles.css` disalin dari `Resources/FE/` ke `/var/www/html/` di `frontend-server`.
 Kami mengubah variabel `API_BASE` pada file `index.html` menjadi:
 ```javascript
 const API_BASE = "";
 ```
-Dengan merujuk ke path kosong (`""`), semua API call dari browser diarahkan secara otomatis ke IP Load Balancer (`http://34.101.72.188`) port 80. Nginx bertindak sebagai gerbang tunggal yang menyajikan file statis sekaligus melakukan reverse proxy ke backend server, sehingga menghindari isu Cross-Origin Resource Sharing (CORS) tanpa membutuhkan konfigurasi tambahan pada sisi backend.
+Dengan merujuk ke path kosong (`""`), semua API call dari browser diarahkan secara otomatis ke IP Load Balancer (`http://34.50.117.141`) port 80. Nginx bertindak sebagai gerbang tunggal yang menyajikan file statis sekaligus melakukan reverse proxy ke backend server, sehingga menghindari isu Cross-Origin Resource Sharing (CORS) tanpa membutuhkan konfigurasi tambahan pada sisi backend.
 
 #### Screenshot Pendukung:
 - **Status Nginx Active:**
@@ -523,8 +515,6 @@ frontend1 ansible_host=10.184.0.2
 # Grup server backend (Flask app)
 [appservers]
 app1 ansible_host=10.184.0.3
-app2 ansible_host=10.184.0.4
-app3 ansible_host=10.184.0.5
 
 # Grup server database (MongoDB)
 [mongodb]
@@ -719,11 +709,9 @@ setup_appserver.yml
 
           # Definisi upstream: kelompok backend server yang menerima traffic
           upstream backend {
-              least_conn;    # Kirim request ke server dengan koneksi paling sedikit
+              least_conn;
 
               server 10.184.0.3:5000;    # app1
-              server 10.184.0.4:5000;    # app2
-              server 10.184.0.5:5000;    # app3
           }
 
           server {
@@ -800,10 +788,10 @@ curl http://34.101.72.188/health
 
 ## 11. Load Testing dengan Locust
 
-Load testing dilakukan menggunakan `locustfile.py`, menembak ke Load Balancer Nginx (`http://34.101.72.188`). Tool dijalankan dari luar infrastruktur agar hasil benar-benar mengukur performa server, bukan ikut terbebani oleh proses Locust itu sendiri.
+Load testing dilakukan menggunakan `locustfile.py`, menembak ke Load Balancer Nginx (`http://34.50.117.141`). Tool dijalankan dari luar infrastruktur agar hasil benar-benar mengukur performa server, bukan ikut terbebani oleh proses Locust itu sendiri.
 
 ```bash
-locust -f locustfile.py --host=http://34.101.72.188
+locust -f locustfile.py --host=http://34.50.117.141
 ```
 
 `locustfile.py` mensimulasikan dua tipe pengguna secara bersamaan:
@@ -814,18 +802,18 @@ locust -f locustfile.py --host=http://34.101.72.188
 
 Setiap skenario dijalankan dengan pola sebagai berikut:
 1. Set jumlah user dan spawn rate sesuai skenario
-2. Biarkan berjalan minimal **2–3 menit** sebelum membaca hasil — failure rate yang muncul sesaat di awal (warm-up) dan kemudian reda ke 0% **tidak dihitung sebagai kegagalan kapasitas**, namun failure yang terus bertambah atau menetap di atas ~0,1% dianggap melebihi kapasitas
-3. Titik hasil akhir adalah nilai tertinggi (Skenario 1) atau jumlah user tertinggi (Skenario 2–5) yang masih menunjukkan failure rate 0% (atau mendekati 0%, dengan catatan) secara stabil
+2. Jalankan pengujian selama 60 detik.
+3. Catat hasil RPS tertinggi dengan failure rate 0% (Skenario 1) atau jumlah user tertinggi dengan failure rate 0% (Skenario 2–5).
 
 ### 11.2 Hasil Pengujian
 
 | Skenario | Parameter | Hasil | Failure Rate |
 |---|---|---|---|
-| 1 | Spawn rate bertahap | RPS tertinggi @ **500 users** | 0% |
-| 2 | Spawn rate 50 | Max concurrent user: **700** | 0,01% (3 failure, reda lalu stabil) |
-| 3 | Spawn rate 100 | Max concurrent user: **600** | 0% |
-| 4 | Spawn rate 200 | Max concurrent user: **600** | 0% |
-| 5 | Spawn rate 500 | Max concurrent user: **500** | 0% |
+| 1 | Spawn rate bertahap | RPS tertinggi: **36.98 RPS** @ 100 users | 0% |
+| 2 | Spawn rate 50 | Max concurrent user: **500 users** (146.83 RPS) | 0% |
+| 3 | Spawn rate 100 | Max concurrent user: **200 users** (73.08 RPS) | 0% |
+| 4 | Spawn rate 200 | Max concurrent user: **200 users** (74.52 RPS) | 0% |
+| 5 | Spawn rate 500 | Max concurrent user: **200 users** (73.68 RPS) | 0% |
 
 **Catatan Skenario 2:** Pada percobaan 700 user dengan spawn rate 50, ditemukan 3 failure (`CatchResponseError`) yang muncul singkat di awal pengukuran lalu tidak bertambah lagi hingga akhir durasi pengujian. Jika diuji dengan 600 user maka failure rate akan sama seperti skenario akhir yaitu 0%.
 
@@ -835,12 +823,12 @@ Setiap skenario dijalankan dengan pola sebagai berikut:
 
 | Spawn Rate | Max Concurrent User Stabil |
 |---|---|
-| 50 | 700 |
-| 100 | 600 |
-| 200 | 600 |
-| 500 | 500 |
+| 50 | 500 |
+| 100 | 200 |
+| 200 | 200 |
+| 500 | 200 |
 
-Hal ini wajar karena spawn rate tinggi membuat banyak koneksi baru terbentuk dalam waktu sangat singkat, sehingga worker Gunicorn (4 worker per App Server) dan connection pool MongoDB (`maxPoolSize=200`) lebih cepat jenuh dibandingkan ketika koneksi baru terbentuk secara gradual.
+Hal ini wajar karena spawn rate tinggi membuat banyak koneksi baru terbentuk dalam waktu sangat singkat, sehingga worker Gunicorn (4 worker pada satu-satunya App Server) dan connection pool MongoDB lebih cepat jenuh dibandingkan ketika koneksi baru terbentuk secara gradual.
 
 **Endpoint yang paling sering gagal saat overload** adalah `/products?[filters]` dan `/products/<id>` — sejalan dengan bobot task tertinggi pada `CustomerUser` di `locustfile.py`, di mana endpoint katalog produk menerima proporsi traffic terbesar.
 
