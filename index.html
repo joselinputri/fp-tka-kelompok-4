@@ -3,150 +3,646 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Order Processing Service</title>
+  <title>Order Processing Service — Dashboard</title>
+  <!-- Google Fonts for premium typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="container">
-    <header>
-      <h1>🛒 Order Processing Service</h1>
-      <p class="subtitle">Final Project Teknologi Komputasi Awan</p>
+    <header class="app-header">
+      <div class="header-content">
+        <h1>🛒 Order Processing Service</h1>
+        <p class="subtitle">Final Project Teknologi Komputasi Awan — Kelompok 4</p>
+      </div>
+      <div class="user-status-card" id="user-status-card">
+        <div class="status-indicator offline"></div>
+        <div class="user-info-text">
+          <span class="user-name">Belum Login</span>
+          <span class="user-role">Guest</span>
+        </div>
+      </div>
     </header>
 
-    <!-- Form Buat Pesanan -->
-    <section class="card">
-      <h2>Buat Pesanan Baru</h2>
-      <div class="form-group">
-        <label for="product">Nama Produk</label>
-        <input type="text" id="product" placeholder="Contoh: Laptop Gaming ASUS ROG" />
-      </div>
-      <div class="form-group">
-        <label for="quantity">Jumlah</label>
-        <input type="number" id="quantity" min="1" value="1" />
-      </div>
-      <div class="form-group">
-        <label for="price">Harga Satuan (Rp)</label>
-        <input type="number" id="price" min="0" placeholder="Contoh: 150000" />
-      </div>
-      <button onclick="createOrder()">Buat Pesanan</button>
-      <div id="create-result" class="result-box hidden"></div>
-    </section>
+    <!-- Tab Navigation -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" onclick="switchTab('auth-tab')">🔑 Autentikasi</button>
+      <button class="tab-btn" onclick="switchTab('shop-tab')">🛍️ Buat Pesanan</button>
+      <button class="tab-btn" onclick="switchTab('history-tab')">📜 Riwayat Pesanan</button>
+      <button class="tab-btn" onclick="switchTab('admin-tab')">🛡️ Admin Panel</button>
+    </nav>
 
-    <!-- Cek Status Pesanan -->
-    <section class="card">
-      <h2>Cek Status Pesanan</h2>
-      <div class="form-group">
-        <label for="order-id">Order ID</label>
-        <input type="text" id="order-id" placeholder="Masukkan order_id" />
-      </div>
-      <button onclick="getOrderStatus()">Cek Status</button>
-      <div id="status-result" class="result-box hidden"></div>
-    </section>
+    <!-- TAB 1: AUTHENTICATION -->
+    <main id="auth-tab" class="tab-content active">
+      <div class="grid-2">
+        <!-- Login Card -->
+        <section class="card">
+          <h2>Masuk (Login)</h2>
+          <form onsubmit="handleLogin(event)">
+            <div class="form-group">
+              <label for="login-email">Email</label>
+              <input type="email" id="login-email" required placeholder="Contoh: user1@example.com atau admin1@tka.its.ac.id" />
+            </div>
+            <div class="form-group">
+              <label for="login-password">Password</label>
+              <input type="password" id="login-password" required placeholder="Masukkan password Anda" />
+            </div>
+            <button type="submit" class="btn-primary">Masuk</button>
+          </form>
+          <div id="login-result" class="result-box hidden"></div>
+        </section>
 
-    <!-- Update Status -->
-    <section class="card">
-      <h2>Update Status Pesanan</h2>
-      <div class="form-group">
-        <label for="update-order-id">Order ID</label>
-        <input type="text" id="update-order-id" placeholder="Masukkan order_id" />
+        <!-- Register Card -->
+        <section class="card">
+          <h2>Daftar Akun Baru</h2>
+          <form onsubmit="handleRegister(event)">
+            <div class="form-group">
+              <label for="reg-name">Nama Lengkap</label>
+              <input type="text" id="reg-name" required placeholder="Nama Lengkap" />
+            </div>
+            <div class="form-group">
+              <label for="reg-email">Email</label>
+              <input type="email" id="reg-email" required placeholder="Email aktif" />
+            </div>
+            <div class="form-group">
+              <label for="reg-password">Password</label>
+              <input type="password" id="reg-password" required placeholder="Minimal 6 karakter" />
+            </div>
+            <div class="form-group">
+              <label for="reg-city">Kota</label>
+              <input type="text" id="reg-city" placeholder="Kota Asal" />
+            </div>
+            <div class="form-group">
+              <label for="reg-phone">Nomor Telepon</label>
+              <input type="text" id="reg-phone" placeholder="Nomor Telepon" />
+            </div>
+            <div class="form-group">
+              <label for="reg-address">Alamat Lengkap</label>
+              <input type="text" id="reg-address" placeholder="Alamat pengiriman default" />
+            </div>
+            <button type="submit" class="btn-secondary">Daftar</button>
+          </form>
+          <div id="register-result" class="result-box hidden"></div>
+        </section>
       </div>
-      <div class="form-group">
-        <label for="new-status">Status Baru</label>
-        <select id="new-status">
-          <option value="pending">Pending</option>
-          <option value="processing">Processing</option>
-          <option value="completed">Completed</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
-      </div>
-      <button onclick="updateOrderStatus()">Update Status</button>
-      <div id="update-result" class="result-box hidden"></div>
-    </section>
 
-    <!-- Riwayat Pesanan -->
-    <section class="card">
-      <h2>Riwayat Pesanan</h2>
-      <button onclick="getOrderHistory()">Tampilkan Riwayat</button>
-      <div id="history-result" class="result-box hidden"></div>
-    </section>
+      <!-- Manual JWT Token Input -->
+      <section class="card mt-24">
+        <h2>🔑 JWT Bearer Token (Manual Override)</h2>
+        <p class="description">
+          Token JWT disimpan secara otomatis saat Anda login/register. Anda juga bisa menempelkan (paste) token JWT di bawah secara manual untuk berpindah role/akun.
+        </p>
+        <div class="form-group">
+          <label for="jwt-token">Token JWT Aktif</label>
+          <textarea id="jwt-token" rows="3" placeholder="Token JWT akan terisi di sini..." readonly></textarea>
+        </div>
+        <div class="btn-group">
+          <button onclick="copyTokenToClipboard()" class="btn-info">Salin Token</button>
+          <button onclick="logout()" class="btn-danger">Logout / Hapus Token</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- TAB 2: SHOP (CREATE ORDER) -->
+    <main id="shop-tab" class="tab-content">
+      <section class="card">
+        <h2>🛍️ Belanja & Buat Pesanan Baru</h2>
+        <p class="description">
+          Silakan pilih produk dari katalog yang diambil langsung dari database. Pastikan Anda telah login sebelum membuat pesanan.
+        </p>
+        
+        <div class="grid-2">
+          <div>
+            <div class="form-group">
+              <label for="product-select">Pilih Produk</label>
+              <select id="product-select" onchange="updatePriceAndStock()">
+                <option value="" disabled selected>Mengambil data produk...</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="quantity">Jumlah (Qty)</label>
+              <input type="number" id="quantity" min="1" value="1" oninput="calculateTotal()" />
+            </div>
+
+            <div class="form-group">
+              <label for="order-payment">Metode Pembayaran</label>
+              <select id="order-payment">
+                <option value="gopay">GoPay</option>
+                <option value="ovo">OVO</option>
+                <option value="dana">DANA</option>
+                <option value="qris" selected>QRIS</option>
+                <option value="transfer_bank">Transfer Bank</option>
+                <option value="kartu_kredit">Kartu Kredit</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <div class="form-group">
+              <label for="order-shipping">Ongkos Kirim (Rp)</label>
+              <select id="order-shipping" onchange="calculateTotal()">
+                <option value="0" selected>Gratis Ongkir (Rp 0)</option>
+                <option value="9000">Regular (Rp 9.000)</option>
+                <option value="15000">Express (Rp 15.000)</option>
+                <option value="25000">Next Day (Rp 25.000)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="order-address">Alamat Pengiriman</label>
+              <input type="text" id="order-address" placeholder="Masukkan alamat pengiriman untuk pesanan ini" />
+            </div>
+
+            <div class="form-group">
+              <label for="order-notes">Catatan Pesanan</label>
+              <input type="text" id="order-notes" placeholder="Catatan tambahan (warna, ukuran, dll.)" />
+            </div>
+          </div>
+        </div>
+
+        <div class="price-summary">
+          <div class="price-row">
+            <span>Harga Satuan:</span>
+            <span id="label-unit-price">Rp 0</span>
+          </div>
+          <div class="price-row">
+            <span>Stok Tersedia:</span>
+            <span id="label-stock">-</span>
+          </div>
+          <div class="price-row">
+            <span>Ongkos Kirim:</span>
+            <span id="label-shipping">Rp 0</span>
+          </div>
+          <div class="price-row total">
+            <span>Total Pembayaran:</span>
+            <span id="label-total-price">Rp 0</span>
+          </div>
+        </div>
+
+        <button onclick="createOrder()" class="btn-success btn-large">Buat Pesanan Sekarang</button>
+        <div id="create-result" class="result-box hidden"></div>
+      </section>
+    </main>
+
+    <!-- TAB 3: ORDER HISTORY -->
+    <main id="history-tab" class="tab-content">
+      <section class="card">
+        <h2>📜 Riwayat Pesanan Anda</h2>
+        <div class="history-controls">
+          <button onclick="getOrderHistory()" class="btn-primary">🔄 Refresh Riwayat</button>
+        </div>
+        
+        <div class="table-container">
+          <table class="data-table" id="history-table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Tanggal</th>
+                <th>Item Produk</th>
+                <th>Total</th>
+                <th>Pembayaran</th>
+                <th>Status</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="history-list">
+              <tr>
+                <td colspan="7" class="text-center">Silakan klik "Refresh Riwayat" atau login untuk memuat data.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="history-result" class="result-box hidden"></div>
+      </section>
+    </main>
+
+    <!-- TAB 4: ADMIN PANEL -->
+    <main id="admin-tab" class="tab-content">
+      <section class="card">
+        <h2>🛡️ Manajemen Status Pesanan (Admin Only)</h2>
+        <p class="description">
+          Halaman ini digunakan oleh akun berspesifikasi Role **Admin** untuk melihat semua pesanan dan mengubah status pesanan.
+        </p>
+
+        <div class="grid-2">
+          <!-- Update Status Card -->
+          <div class="admin-action-box">
+            <h3>🔄 Ubah Status Pesanan</h3>
+            <div class="form-group">
+              <label for="admin-update-id">Order ID</label>
+              <input type="text" id="admin-update-id" placeholder="Masukkan order_id" />
+            </div>
+            <div class="form-group">
+              <label for="admin-new-status">Status Baru</label>
+              <select id="admin-new-status">
+                <option value="pending">Pending</option>
+                <option value="processing">Processing</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+            <button onclick="updateOrderStatus()" class="btn-primary">Update Status</button>
+            <div id="admin-update-result" class="result-box hidden"></div>
+          </div>
+
+          <!-- Get Order Detail Card -->
+          <div class="admin-action-box">
+            <h3>🔍 Cari Detail Pesanan</h3>
+            <div class="form-group">
+              <label for="admin-search-id">Order ID</label>
+              <input type="text" id="admin-search-id" placeholder="Masukkan order_id" />
+            </div>
+            <button onclick="getOrderStatus()" class="btn-secondary">Cari Pesanan</button>
+            <div id="admin-search-result" class="result-box hidden"></div>
+          </div>
+        </div>
+      </section>
+    </main>
   </div>
 
   <script>
-    // Ganti dengan IP/URL backend yang sudah di-deploy
-    const API_BASE = "http://localhost:5001";
+    const API_BASE = "";
+    let productsList = [];
+
+    // Setup state
+    document.addEventListener("DOMContentLoaded", () => {
+      checkActiveToken();
+      fetchProducts();
+    });
+
+    function switchTab(tabId) {
+      document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
+      document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
+      
+      document.getElementById(tabId).classList.add("active");
+      
+      // Find the tab button matching and make active
+      const tabBtns = document.querySelectorAll(".tab-btn");
+      tabBtns.forEach(btn => {
+        if (btn.getAttribute("onclick").includes(tabId)) {
+          btn.classList.add("active");
+        }
+      });
+
+      // Auto-load history when switching to history tab
+      if (tabId === 'history-tab') {
+        getOrderHistory();
+      }
+    }
+
+    function getAuthHeaders() {
+      const token = localStorage.getItem("token");
+      return token ? { "Authorization": `Bearer ${token}` } : {};
+    }
+
+    function checkActiveToken() {
+      const token = localStorage.getItem("token");
+      const statusCard = document.getElementById("user-status-card");
+      const indicator = statusCard.querySelector(".status-indicator");
+      const nameLabel = statusCard.querySelector(".user-name");
+      const roleLabel = statusCard.querySelector(".user-role");
+      const jwtTextarea = document.getElementById("jwt-token");
+
+      if (token) {
+        jwtTextarea.value = token;
+        indicator.className = "status-indicator online";
+        nameLabel.textContent = "Mengambil Profil...";
+        roleLabel.textContent = "Memverifikasi...";
+
+        // Fetch User Info
+        fetch(`${API_BASE}/auth/me`, { headers: { "Authorization": `Bearer ${token}` } })
+          .then(res => {
+            if (!res.ok) throw new Error("Invalid token");
+            return res.json();
+          })
+          .then(user => {
+            nameLabel.textContent = user.name;
+            roleLabel.textContent = user.role.toUpperCase();
+            if (user.address && !document.getElementById("order-address").value) {
+              document.getElementById("order-address").value = user.address;
+            }
+          })
+          .catch(err => {
+            logout();
+          });
+      } else {
+        jwtTextarea.value = "";
+        indicator.className = "status-indicator offline";
+        nameLabel.textContent = "Belum Login";
+        roleLabel.textContent = "Guest";
+      }
+    }
+
+    function copyTokenToClipboard() {
+      const token = localStorage.getItem("token");
+      if (!token) return alert("Tidak ada token untuk disalin.");
+      navigator.clipboard.writeText(token).then(() => {
+        alert("Token disalin ke clipboard!");
+      });
+    }
+
+    function logout() {
+      localStorage.removeItem("token");
+      checkActiveToken();
+      document.getElementById("jwt-token").value = "";
+      alert("Berhasil logout.");
+      switchTab('auth-tab');
+    }
 
     function showResult(elementId, data, isError = false) {
       const el = document.getElementById(elementId);
       el.classList.remove("hidden", "error", "success");
       el.classList.add(isError ? "error" : "success");
-      el.textContent = JSON.stringify(data, null, 2);
+      el.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
     }
 
-    async function createOrder() {
-      const product = document.getElementById("product").value.trim();
-      const quantity = parseInt(document.getElementById("quantity").value);
-      const price = parseFloat(document.getElementById("price").value);
+    // Dynamic Product Fetch
+    async function fetchProducts() {
+      const productSelect = document.getElementById("product-select");
+      try {
+        const res = await fetch(`${API_BASE}/products?limit=100`);
+        const result = await res.json();
+        
+        if (res.ok && result.data) {
+          productsList = result.data;
+          productSelect.innerHTML = '<option value="" disabled selected>-- Pilih Produk --</option>';
+          productsList.forEach(prod => {
+            const option = document.createElement("option");
+            option.value = prod._id;
+            option.textContent = `${prod.name} (${prod.category})`;
+            productSelect.appendChild(option);
+          });
+        } else {
+          productSelect.innerHTML = '<option value="" disabled>Gagal mengambil data produk</option>';
+        }
+      } catch (err) {
+        productSelect.innerHTML = '<option value="" disabled>Error memuat data produk</option>';
+      }
+    }
 
-      if (!product || !quantity || !price) {
-        showResult("create-result", { error: "Semua field wajib diisi" }, true);
+    function updatePriceAndStock() {
+      const selectedId = document.getElementById("product-select").value;
+      const product = productsList.find(p => p._id === selectedId);
+      
+      if (product) {
+        document.getElementById("label-unit-price").textContent = formatRupiah(product.price);
+        document.getElementById("label-stock").textContent = `${product.stock} unit`;
+        calculateTotal();
+      }
+    }
+
+    function calculateTotal() {
+      const selectedId = document.getElementById("product-select").value;
+      const product = productsList.find(p => p._id === selectedId);
+      const qty = parseInt(document.getElementById("quantity").value) || 1;
+      const shipping = parseFloat(document.getElementById("order-shipping").value) || 0;
+
+      document.getElementById("label-shipping").textContent = formatRupiah(shipping);
+
+      if (product) {
+        const total = (product.price * qty) + shipping;
+        document.getElementById("label-total-price").textContent = formatRupiah(total);
+      } else {
+        document.getElementById("label-total-price").textContent = formatRupiah(shipping);
+      }
+    }
+
+    function formatRupiah(amount) {
+      return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        maximumFractionDigits: 0
+      }).format(amount);
+    }
+
+    // AUTH ACTION: LOGIN
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById("login-email").value.trim();
+      const password = document.getElementById("login-password").value;
+      const resultBox = document.getElementById("login-result");
+
+      try {
+        const res = await fetch(`${API_BASE}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        
+        if (res.ok && data.token) {
+          localStorage.setItem("token", data.token);
+          checkActiveToken();
+          showResult("login-result", { message: "Login Berhasil!", user: data.user });
+          alert(`Selamat datang kembali, ${data.user.name}!`);
+          document.getElementById("login-email").value = "";
+          document.getElementById("login-password").value = "";
+          switchTab('shop-tab');
+        } else {
+          showResult("login-result", data, true);
+        }
+      } catch (err) {
+        showResult("login-result", { error: err.message }, true);
+      }
+    }
+
+    // AUTH ACTION: REGISTER
+    async function handleRegister(e) {
+      e.preventDefault();
+      const name = document.getElementById("reg-name").value.trim();
+      const email = document.getElementById("reg-email").value.trim();
+      const password = document.getElementById("reg-password").value;
+      const city = document.getElementById("reg-city").value.trim();
+      const phone = document.getElementById("reg-phone").value.trim();
+      const address = document.getElementById("reg-address").value.trim();
+
+      try {
+        const res = await fetch(`${API_BASE}/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password, city, phone, address })
+        });
+        const data = await res.json();
+        
+        if (res.ok && data.token) {
+          localStorage.setItem("token", data.token);
+          checkActiveToken();
+          showResult("register-result", { message: "Registrasi Berhasil!", user: data.user });
+          alert("Pendaftaran berhasil!");
+          switchTab('shop-tab');
+        } else {
+          showResult("register-result", data, true);
+        }
+      } catch (err) {
+        showResult("register-result", { error: err.message }, true);
+      }
+    }
+
+    // CREATE ORDER
+    async function createOrder() {
+      const productId = document.getElementById("product-select").value;
+      const quantity = parseInt(document.getElementById("quantity").value) || 1;
+      const paymentMethod = document.getElementById("order-payment").value;
+      const shippingCost = parseInt(document.getElementById("order-shipping").value) || 0;
+      const address = document.getElementById("order-address").value.trim();
+      const notes = document.getElementById("order-notes").value.trim();
+      const resultBox = document.getElementById("create-result");
+
+      if (!productId) {
+        showResult("create-result", { error: "Silakan pilih produk terlebih dahulu." }, true);
         return;
       }
 
+      const payload = {
+        items: [
+          {
+            product_id: productId,
+            qty: quantity
+          }
+        ],
+        payment_method: paymentMethod,
+        shipping_cost: shippingCost,
+        address: address,
+        notes: notes
+      };
+
       try {
-        const res = await fetch(`${API_BASE}/order`, {
+        const res = await fetch(`${API_BASE}/orders`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ product, quantity, price })
+          headers: { 
+            "Content-Type": "application/json",
+            ...getAuthHeaders()
+          },
+          body: JSON.stringify(payload)
         });
         const data = await res.json();
-        showResult("create-result", data, !res.ok);
+        
+        if (res.ok) {
+          showResult("create-result", { message: "Pesanan berhasil dibuat!", order_id: data.order_id, total: data.total });
+          alert(`Pesanan Sukses! Order ID Anda: ${data.order_id}`);
+          fetchProducts(); // Refresh stock
+          // Reset form
+          document.getElementById("quantity").value = 1;
+          document.getElementById("order-notes").value = "";
+        } else {
+          showResult("create-result", data, true);
+        }
       } catch (err) {
         showResult("create-result", { error: err.message }, true);
       }
     }
 
-    async function getOrderStatus() {
-      const orderId = document.getElementById("order-id").value.trim();
-      if (!orderId) {
-        showResult("status-result", { error: "Order ID wajib diisi" }, true);
-        return;
-      }
-      try {
-        const res = await fetch(`${API_BASE}/order/${orderId}`);
-        const data = await res.json();
-        showResult("status-result", data, !res.ok);
-      } catch (err) {
-        showResult("status-result", { error: err.message }, true);
-      }
-    }
-
-    async function updateOrderStatus() {
-      const orderId = document.getElementById("update-order-id").value.trim();
-      const status = document.getElementById("new-status").value;
-      if (!orderId) {
-        showResult("update-result", { error: "Order ID wajib diisi" }, true);
-        return;
-      }
-      try {
-        const res = await fetch(`${API_BASE}/order/${orderId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status })
-        });
-        const data = await res.json();
-        showResult("update-result", data, !res.ok);
-      } catch (err) {
-        showResult("update-result", { error: err.message }, true);
-      }
-    }
-
+    // FETCH ORDER HISTORY
     async function getOrderHistory() {
+      const historyList = document.getElementById("history-list");
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        historyList.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Silakan login terlebih dahulu untuk melihat riwayat pesanan Anda.</td></tr>';
+        return;
+      }
+
       try {
-        const res = await fetch(`${API_BASE}/orders`);
+        const res = await fetch(`${API_BASE}/orders?limit=50`, {
+          headers: getAuthHeaders()
+        });
+        const result = await res.json();
+        
+        if (res.ok && result.data) {
+          const orders = result.data;
+          if (orders.length === 0) {
+            historyList.innerHTML = '<tr><td colspan="7" class="text-center">Anda belum memiliki riwayat pesanan.</td></tr>';
+            return;
+          }
+
+          historyList.innerHTML = "";
+          orders.forEach(order => {
+            const tr = document.createElement("tr");
+            
+            // Format products summary
+            const itemsSummary = order.items.map(item => `${item.product_name} (${item.qty}x)`).join(", ");
+            const dateStr = new Date(order.created_at).toLocaleDateString("id-ID", {
+              day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+            });
+
+            tr.innerHTML = `
+              <td class="font-mono text-small" title="${order.order_id}">${order.order_id.substring(0, 8)}...</td>
+              <td>${dateStr}</td>
+              <td class="item-cell">${itemsSummary}</td>
+              <td class="font-semibold">${formatRupiah(order.total)}</td>
+              <td class="text-uppercase">${order.payment_method}</td>
+              <td><span class="badge badge-${order.status}">${order.status.toUpperCase()}</span></td>
+              <td>
+                <button class="btn-xs btn-primary" onclick="viewOrderDetail('${order.order_id}')">Detail</button>
+              </td>
+            `;
+            historyList.appendChild(tr);
+          });
+        } else {
+          historyList.innerHTML = `<tr><td colspan="7" class="text-center text-danger">Gagal mengambil riwayat: ${result.error || 'Server Error'}</td></tr>`;
+        }
+      } catch (err) {
+        historyList.innerHTML = `<tr><td colspan="7" class="text-center text-danger">Error memuat data: ${err.message}</td></tr>`;
+      }
+    }
+
+    async function viewOrderDetail(orderId) {
+      try {
+        const res = await fetch(`${API_BASE}/orders/${orderId}`, {
+          headers: getAuthHeaders()
+        });
         const data = await res.json();
         showResult("history-result", data, !res.ok);
       } catch (err) {
         showResult("history-result", { error: err.message }, true);
+      }
+    }
+
+    // SEARCH ORDER (ADMIN/USER)
+    async function getOrderStatus() {
+      const orderId = document.getElementById("admin-search-id").value.trim();
+      if (!orderId) {
+        showResult("admin-search-result", { error: "Order ID wajib diisi" }, true);
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/orders/${orderId}`, {
+          headers: getAuthHeaders()
+        });
+        const data = await res.json();
+        showResult("admin-search-result", data, !res.ok);
+      } catch (err) {
+        showResult("admin-search-result", { error: err.message }, true);
+      }
+    }
+
+    // UPDATE STATUS (ADMIN)
+    async function updateOrderStatus() {
+      const orderId = document.getElementById("admin-update-id").value.trim();
+      const status = document.getElementById("admin-new-status").value;
+      if (!orderId) {
+        showResult("admin-update-result", { error: "Order ID wajib diisi" }, true);
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/orders/${orderId}/status`, {
+          method: "PUT",
+          headers: { 
+            "Content-Type": "application/json",
+            ...getAuthHeaders()
+          },
+          body: JSON.stringify({ status })
+        });
+        const data = await res.json();
+        showResult("admin-update-result", data, !res.ok);
+        if (res.ok) {
+          alert(`Status Order ${orderId} berhasil diubah ke ${status}!`);
+        }
+      } catch (err) {
+        showResult("admin-update-result", { error: err.message }, true);
       }
     }
   </script>
