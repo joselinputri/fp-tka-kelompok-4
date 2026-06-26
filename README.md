@@ -809,51 +809,65 @@ Setiap skenario dijalankan dengan pola sebagai berikut:
 
 | Skenario | Parameter | Hasil | Failure Rate |
 |---|---|---|---|
-| 1 | Spawn rate bertahap | RPS tertinggi: **36.98 RPS** @ 100 users | 0% |
-| 2 | Spawn rate 50 | Max concurrent user: **500 users** (146.83 RPS) | 0% |
-| 3 | Spawn rate 100 | Max concurrent user: **200 users** (73.08 RPS) | 0% |
-| 4 | Spawn rate 200 | Max concurrent user: **200 users** (74.52 RPS) | 0% |
-| 5 | Spawn rate 500 | Max concurrent user: **200 users** (73.68 RPS) | 0% |
+| 1 | Spawn rate bertahap | RPS tertinggi: **163.66 RPS** @ 500 users | 0% |
+| 2 | Spawn rate 50 | Max concurrent user: **1300 users** (14.8 RPS) | 0% |
+| 3 | Spawn rate 100 | Max concurrent user: **1200 users** (15.72 RPS) | 0% |
+| 4 | Spawn rate 200 | Max concurrent user: **1300 users** (18.892 RPS) | 0% |
+| 5 | Spawn rate 500 | Max concurrent user: **1400 users** (16.17 RPS) | 0% |
 
-**Catatan Skenario 2:** Pada percobaan 700 user dengan spawn rate 50, ditemukan 3 failure (`CatchResponseError`) yang muncul singkat di awal pengukuran lalu tidak bertambah lagi hingga akhir durasi pengujian. Jika diuji dengan 600 user maka failure rate akan sama seperti skenario akhir yaitu 0%.
+Berdasarkan hasil pengujian, seluruh skenario berhasil dijalankan tanpa menghasilkan kegagalan (*failure rate* 0%). Pada pengujian peningkatan pengguna secara bertahap, sistem mampu mencapai throughput maksimum sebesar 163,66 request per second (RPS) pada beban 500 pengguna. Sementara itu, pada pengujian *peak concurrency*, sistem mampu mempertahankan antara 1.200–1.400 concurrent users bergantung pada nilai spawn rate yang digunakan.
+
 
 ### 11.3 Analisis
 
-**Pengaruh spawn rate terhadap kapasitas maksimal.** Semakin tinggi spawn rate, maka semakin rendah jumlah concurrent user yang dapat ditangani sistem secara stabil:
+Pengaruh spawn rate terhadap kapasitas maksimal.
 
 | Spawn Rate | Max Concurrent User Stabil |
 |---|---|
-| 50 | 500 |
-| 100 | 200 |
-| 200 | 200 |
-| 500 | 200 |
+| 50 | 1300 |
+| 100 | 1200 |
+| 200 | 1300 |
+| 500 | 1400 |
 
-Hal ini wajar karena spawn rate tinggi membuat banyak koneksi baru terbentuk dalam waktu sangat singkat, sehingga worker Gunicorn (4 worker pada satu-satunya App Server) dan connection pool MongoDB lebih cepat jenuh dibandingkan ketika koneksi baru terbentuk secara gradual.
+Hasil pengujian menunjukkan bahwa seluruh skenario dapat dijalankan tanpa menghasilkan *failure rate* (0%). Kapasitas sistem berada pada kisaran 1.200–1.400 concurrent users, sedangkan throughput yang dicapai berada pada rentang 14,80–18,89 RPS.
 
-**Endpoint yang paling sering gagal saat overload** adalah `/products?[filters]` dan `/products/<id>` — sejalan dengan bobot task tertinggi pada `CustomerUser` di `locustfile.py`, di mana endpoint katalog produk menerima proporsi traffic terbesar.
+Berdasarkan hasil pemantauan selama pengujian, komponen yang paling cepat mencapai kapasitas maksimum adalah VM App Server. Peningkatan jumlah pengguna menyebabkan beban komputasi pada server aplikasi meningkat secara signifikan, terutama pada penggunaan CPU dan memori untuk menangani proses aplikasi serta permintaan HTTP yang masuk.
+
+Perbedaan nilai maksimum *concurrent users* pada setiap *spawn rate* relatif kecil dan tidak menunjukkan hubungan yang sepenuhnya linear. Hal ini mengindikasikan bahwa variasi *spawn rate* lebih memengaruhi pola kedatangan beban (*burst load*), sedangkan kapasitas sistem secara keseluruhan tetap dibatasi oleh kemampuan App Server dalam memproses permintaan secara bersamaan.
 
 ### 11.4 Screenshot Hasil Load Testing
 
 
 **Skenario 1 — RPS Tertinggi (500 users)**
-- Grafik RPS, Response Time, Failure Rate, & Number of Users: ![RPS1](result/locust-skenario1-rps.jpg)
-- CPU/Memory (htop) — MongoDB & App Server 1/2/3: ![HTOP1](result/locust-skenario1-htop.jpg)
+- Grafik RPS, Response Time, Failure Rate, & Number of Users: 
+![RPS1](result/locust-skenario1-rps.png)
+Max RPS: 164.66  
+Max Users: 500
+- CPU/Memory (htop) — MongoDB, App Server, & Frontend : ![HTOP1](result/locust-skenario1-htop.png)
 
-**Skenario 2 — Spawn Rate 50 (700 users)**
-- Grafik RPS, Response Time, Failure Rate, & Number of Users: ![RPS2](result/locust-skenario2-rps.jpg)
-- CPU/Memory (htop) — MongoDB & App Server 1/2/3: ![HTOP2](result/locust-skenario2-htop.jpg)
+**Skenario 2 — Spawn Rate 50 (1300 users)**
+- Grafik RPS, Response Time, Failure Rate, & Number of Users: ![RPS2](result/locust-skenario2-rps.png)
+Max Users: 1300  
+Max RPS: 14.8
+- CPU/Memory (htop) — MongoDB, App Server, & Frontend: ![HTOP2](result/locust-skenario2-htop.png)
 
 **Skenario 3 — Spawn Rate 100 (600 users)**
-- Grafik RPS, Response Time, Failure Rate, & Number of Users: ![RPS3](result/locust-skenario3-rps.jpg)
-- CPU/Memory (htop) — MongoDB & App Server 1/2/3: ![HTOP3](result/locust-skenario3-htop.jpg)
+- Grafik RPS, Response Time, Failure Rate, & Number of Users: ![RPS3](result/locust-skenario3-rps.png)
+Max Users: 1200  
+Max RPS: 15.72
+- CPU/Memory (htop) — MongoDB & App Server 1/2/3: ![HTOP3](result/locust-skenario3-htop.png)
 
 **Skenario 4 — Spawn Rate 200 (600 users)**
-- Grafik RPS, Response Time, Failure Rate, & Number of Users: ![RPS4](result/locust-skenario4-rps.jpg)
-- CPU/Memory (htop) — MongoDB & App Server 1/2/3: ![HTOP4](result/locust-skenario4-htop.jpg) 
+- Grafik RPS, Response Time, Failure Rate, & Number of Users: ![RPS4](result/locust-skenario4-rps.png)
+Max Users: 1300  
+Max RPS: 18.892
+- CPU/Memory (htop) — MongoDB & App Server 1/2/3: ![HTOP4](result/locust-skenario4-htop.png) 
 
 **Skenario 5 — Spawn Rate 500 (500 users)**
-- Grafik RPS, Response Time, Failure Rate, & Number of Users: ![RPS5](result/locust-skenario5-rps.jpg)
-- CPU/Memory (htop) — MongoDB & App Server 1/2/3: ![HTOP5](result/locust-skenario5-htop.jpg)
+- Grafik RPS, Response Time, Failure Rate, & Number of Users: ![RPS5](result/locust-skenario5-rps.png)
+Max Users: 1400  
+Max RPS: 16.17
+- CPU/Memory (htop) — MongoDB & App Server 1/2/3: ![HTOP5](result/locust-skenario5-htop.png)
 
 ---
 
