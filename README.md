@@ -13,7 +13,7 @@
 
 ---
 ## Rancangan Arsistektur
-<img width="696" height="651" alt="TKA_FP_KEL 4 drawio (1)" src="https://github.com/user-attachments/assets/9dc63ee2-be1b-4f9d-b7bd-330092b5381a" />
+<img width="733" height="922" alt="TKA_FP_KEL 4 drawio" src="https://github.com/user-attachments/assets/9cd42d67-5dbf-41fc-bf5c-bcc348d2a2c5" />
 
 ## Provisioning VM & Konfigurasi Firewall 
 
