@@ -855,19 +855,19 @@ Max RPS: 14.8
 - Grafik RPS, Response Time, Failure Rate, & Number of Users: ![RPS3](result/locust-skenario3-rps.png)
 Max Users: 1200  
 Max RPS: 15.72
-- CPU/Memory (htop) — MongoDB & App Server 1/2/3: ![HTOP3](result/locust-skenario3-htop.png)
+- CPU/Memory (htop) — MongoDB, App Server, & Frontend: ![HTOP3](result/locust-skenario3-htop.png)
 
 **Skenario 4 — Spawn Rate 200 (600 users)**
 - Grafik RPS, Response Time, Failure Rate, & Number of Users: ![RPS4](result/locust-skenario4-rps.png)
 Max Users: 1300  
 Max RPS: 18.892
-- CPU/Memory (htop) — MongoDB & App Server 1/2/3: ![HTOP4](result/locust-skenario4-htop.png) 
+- CPU/Memory (htop) — MongoDB, App Server, & Frontend: ![HTOP4](result/locust-skenario4-htop.png) 
 
 **Skenario 5 — Spawn Rate 500 (500 users)**
 - Grafik RPS, Response Time, Failure Rate, & Number of Users: ![RPS5](result/locust-skenario5-rps.png)
 Max Users: 1400  
 Max RPS: 16.17
-- CPU/Memory (htop) — MongoDB & App Server 1/2/3: ![HTOP5](result/locust-skenario5-htop.png)
+- CPU/Memory (htop) — MongoDB, App Server, & Frontend: ![HTOP5](result/locust-skenario5-htop.png)
 
 ---
 
