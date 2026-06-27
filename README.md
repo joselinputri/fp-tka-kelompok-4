@@ -36,7 +36,7 @@ Secara default, seluruh VM di GCP berada dalam kondisi tertutup dari koneksi lua
 
 #### A. Isolasi Jaringan Internal (Amankan Komunikasi Antar-VM)
 Memanfaatkan rule bawaan **`default-allow-internal`** yang mengizinkan komunikasi penuh antar-VM yang berada di dalam satu VPC lokal. 
-* **Dampaknya:** Aplikasi Flask (Port 5000), Database MongoDB (Port 27017), dan Caching Redis (Port 6379) bisa saling bertukar data dengan lancar menggunakan **IP Internal**, tanpa perlu khawatir terekspos atau bisa diintip dari internet publik.
+* **Dampaknya:** Aplikasi Flask (Port 5000), Database MongoDB (Port 27017) bisa saling bertukar data dengan lancar menggunakan **IP Internal**, tanpa perlu khawatir terekspos atau bisa diintip dari internet publik.
 
 #### B. Pembukaan Akses Publik (Khusus Web Server Frontend)
 Dibuat aturan kustom baru bernama **`allow-http-https`** serta mengaktifkan tag `http-server` dan `https-server` khusus untuk `vm2-nginx-frontend`.
