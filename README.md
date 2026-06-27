@@ -903,3 +903,31 @@ Max RPS: 16.17
 ### 12.12 GET /health
 <img width="2122" height="1174" alt="image" src="https://github.com/user-attachments/assets/f8896643-2af7-4567-9083-f521a8fa3a8d" />
 
+
+## 13. Analisis & Saran 
+
+### 13.1 Analisis Mendalam (In-Depth Analysis)
+
+Berdasarkan data dari 5 skenario load testing, berikut adalah poin-poin analisis performa infrastruktur secara keseluruhan:
+
+1. **Identifikasi Bottleneck pada App Server (Backend):** Melalui pemantauan resource (htop), terbukti bahwa VM `backend-appserver` (spesifikasi e2-small: 2 vCPU, 2GB RAM) adalah komponen pertama yang mencapai utilisasi 100%. Beban berat terjadi karena framework Flask dan Gunicorn harus menangani komputasi logic aplikasi secara sinkron, memproses token JWT (bcrypt/kriptografi), dan melayani HTTP request-response secara bersamaan. Kapasitas mentok di 1.400 concurrent users murni karena keterbatasan CPU dan RAM pada satu instance ini.
+
+2. **Resiliensi Database (MongoDB) Sangat Baik:** Meskipun App Server mengalami struggle pada beban puncak, VM `database-mongodb` (e2-medium) tetap berjalan dengan rileks dan stabil (ditandai dengan 0% Failure Rate). Hal ini membuktikan bahwa strategi pembuatan 10 Database Index (pada field kritikal seperti `user_id` dan `status`) dan alokasi WiredTiger Cache (1GB) sangat efektif mencegah database lock dan slow query saat 1.400 users melakukan Read/Write secara serentak.
+
+3. **Efisiensi Nginx sebagai Load Balancer:** VM `frontend-server` (e2-micro) tidak menunjukkan gejala overload meskipun menampung ribuan koneksi TCP secara bersamaan. Fitur `worker_processes auto` dan `keepalive` pada Nginx terbukti sangat ringan secara komputasi dan sukses meneruskan (proxying) traffic ke backend tanpa melakukan drop connection (Failure rate = 0%).
+
+4. **Karakteristik Burst Load (Pengaruh Spawn Rate):** Perbedaan spawn rate (50 hingga 500) hanya memengaruhi seberapa cepat sistem "terkejut" oleh lonjakan traffic. Namun, karena Nginx memiliki antrean (queue) yang baik dan Gunicorn membatasi pemrosesan paralel lewat 4 worker, sistem tidak crash. Nginx menahan koneksi tersebut (sehingga RPS stabil di angka 14–18 RPS) sampai App Server selesai memprosesnya.
+
+---
+
+### 13.2 Saran dan Rekomendasi (Future Improvements)
+
+Untuk meningkatkan kapasitas sistem (RPS) agar dapat menampung lebih dari 1.400 concurrent users, berikut adalah beberapa rekomendasi optimasi yang bisa diimplementasikan:
+
+1. **Implementasi Horizontal Scaling (Scale-Out) pada Backend:** Mengingat bottleneck ada pada App Server, langkah paling berdampak adalah menambah jumlah VM Backend (misalnya menjadi 3 VM seperti rencana awal). Dengan mengaktifkan kembali algoritma `least_conn` pada upstream Nginx ke 3 VM tersebut, beban komputasi CPU Flask akan terbagi rata, yang secara teoretis dapat melipatgandakan Max Concurrent Users dan RPS.
+
+2. **Penerapan Vertical Scaling (Scale-Up) Terbatas:** Jika horizontal scaling terkendala biaya, VM `backend-appserver` yang saat ini berukuran e2-small (2 vCPU, 2GB RAM) sebaiknya di-upgrade ke e2-medium (2 vCPU, 4GB RAM) atau yang memiliki Compute-Optimized CPU (misal tipe C2), karena pengolahan routing web server sangat bergantung pada performa CPU single-thread.
+
+3. **Pemanfaatan Caching dengan Redis:** Pada arsitektur, VM App Server dilabeli sebagai (Redis). Sangat disarankan untuk mengimplementasikan Redis Caching di level kode (Flask) untuk endpoint yang Read-Heavy dan jarang berubah secara real-time (seperti `GET /products` atau `GET /admin/stats`). Mengambil data dari RAM (Redis) jauh lebih ringan bagi CPU App Server dibandingkan melakukan agregasi ke MongoDB berulang kali.
+
+4. **Pemrosesan Asinkron (Asynchronous Task Queue):** Untuk proses pembuatan pesanan (operasi Write berat pada `POST /orders`), sistem bisa dibuat asynchronous menggunakan message broker (seperti RabbitMQ atau Celery). Nginx/Flask hanya bertugas menerima pesanan dan mengembalikan respon "Pesanan sedang diproses" ke user dengan sangat cepat, sementara worker di background memasukkannya ke database. Ini akan secara drastis meningkatkan RPS pada skenario transaksi tinggi.
