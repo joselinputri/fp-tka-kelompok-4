@@ -290,7 +290,7 @@ Layanan backend dideploy menggunakan Gunicorn dengan 4 worker pada 1 instance un
 
 | Instance | IP Address |
 | :--- | :--- |
-| backend-appserver (Redis) | `34.101.207.8:5000` |
+| backend-appserver | `34.101.207.8:5000` |
 
 
   Lalu jalankan perintah 
