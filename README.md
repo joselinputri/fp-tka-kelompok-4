@@ -485,11 +485,6 @@ Target server dan IP-nya:
 ```bash
 ssh -i ~/.ssh/id_rsa maritzaadelia076@10.184.0.3
 ```
-
-Output yang diharapkan:
-
-```maritzaadelia076@vm3-appserver1-redis:~$```
-
 ![tes ssh](./result/tes-ssh.jpeg)
 
 Check koneksi:
